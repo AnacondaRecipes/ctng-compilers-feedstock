@@ -1,8 +1,5 @@
-if [[ "${ctng_cpu_arch}" == "x86_64" ]]; then
-  old_vendor="-conda_cos6-linux-gnu-"
-else
-  old_vendor="-conda_cos7-linux-gnu-"
-fi
+# There are now just centos 7 variants
+old_vendor="-conda_cos7-linux-gnu-"
 
 for exe in `ls ${PREFIX}/bin/*-conda-linux-gnu-*`; do
   nm=`basename ${exe}`

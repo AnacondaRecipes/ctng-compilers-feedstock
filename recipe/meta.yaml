@@ -11,8 +11,8 @@ build:
   merge_build_host: False
   # defined in conda_build_config.yaml so that we can keep it associated with a particular GCC version number
   number: {{ build_num | default(0) }}
-  skip: True  # [not linux or ((aarch64 or ppc64le) and target_platform != ctng_target_platform)]
-  # The CentOS6 system libraries should be used for everything here.
+  skip: True  # [not linux or ((aarch64 or ppc64le or s390x) and target_platform != ctng_target_platform)]
+  # The CentOS7 system libraries should be used for everything here.
   # We do not have CDT packages yet, nor compilers that would use them!
   missing_dso_whitelist:
     - "*"
@@ -287,7 +287,7 @@ outputs:
         - {{ pin_subpackage('_openmp_mutex', exact=True) }}
         - sysroot_{{ ctng_target_platform }}
       run:
-        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le]
+        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x]
         - {{ pin_subpackage("_openmp_mutex", max_pin=None) }}
       run_constrained:
         - {{ pin_subpackage("libgomp", exact=True) }}
@@ -319,7 +319,7 @@ outputs:
       host:
         - sysroot_{{ ctng_target_platform }}
       run:
-        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le]
+        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x]
     build:
       number: {{ build_num }}
       detect_binary_files_with_prefix: False
@@ -350,7 +350,7 @@ outputs:
       host:
         - {{ pin_subpackage('libgomp', exact=True) }}
       run:
-        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le]
+        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x]
         - libgomp >=7.5.0
       run_constrained:
         # conflict with previous name
