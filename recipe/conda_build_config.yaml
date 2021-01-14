@@ -12,19 +12,20 @@ ctng_cpu_arch:
 #ctng_gdb:     # [not ppc64le]
 #  - 7.12.1    # [not ppc64le]
 ctng_gcc:
-  - 7.5.0  # [not s390x]
-  - 8.4.0  # [not s390x]
+  - 7.5.0
+  - 8.4.0
   - 9.3.0
 libgfortran_soname:
-  - 4  # [not s390x]
-  - 5  # [not s390x]
+  - 4
+  - 5
   - 5
 ctng_binutils:
   - 2.35.1
   - 2.35.1
   # aarch requires explicit this version to bootstrap
   - 2.29.1
-  - 2.35.1
+  # s390x does not build proper with more recent binutils version
+  - 2.33.1
 ctng_target_platform:
   - linux-64
   - linux-ppc64le
@@ -41,6 +42,8 @@ ctng_vendor:
 #  - 2.5.15
 ctng_gcc_build_number:
   - 17
+_libgcc_mutex:
+  - 0.1 anaconda_defaults
 ctng_gmp:
   - 6.1.2
 ctng_isl:
