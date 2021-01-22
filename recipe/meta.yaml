@@ -1,3 +1,4 @@
+{% set bootstrapping = os.environ.get('CONDA_BUILD_BOOTSTRAPPING', '') %}
 {% set build_num = ctng_gcc_build_number %}
 
 package:
@@ -16,15 +17,22 @@ build:
   # We do not have CDT packages yet, nor compilers that would use them!
   missing_dso_whitelist:
     - "*"
+{% if bootstrapping == 'yes' %}
+  string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_bootstrapping
+{% else %}
+  string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+{% endif %}
 
 requirements:
   build:
     - crosstool-ng >=1.24.0,<1.25
+{% if bootstrapping != 'yes' %}
     - make
     - bash  # [osx]
     - autoconf  # [linux64]
     - automake  # [linux64]
     - libtool
+{% endif %}
   # Need something here so that build does not get installed to a long prefix
   # as that breaks on some systems.
   host:
