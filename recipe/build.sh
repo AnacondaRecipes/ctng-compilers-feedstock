@@ -104,7 +104,7 @@ fi
 # increase stack size to prevent test failures
 # http://gcc.gnu.org/bugzilla/show_bug.cgi?id=31827
 if [[ $(uname) == Linux ]]; then
-  ulimit -s 32768
+  ulimit -s 32768 || true
 fi
 
 CHOST=$(${SRC_DIR}/.build/*-*-*-*/build/build-cc-gcc-final/gcc/xgcc -dumpmachine)
