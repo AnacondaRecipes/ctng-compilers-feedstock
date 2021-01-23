@@ -216,17 +216,22 @@ outputs:
         - libgcc-ng >={{ ctng_gcc }}
     test:
       requires:
-        - cmake >=3.11
+{% if bootstrapping == 'no' %}
+        - cmake
+{% endif %}
         - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
       commands:
         - test -f ${PREFIX}/bin/{{ ctng_cpu_arch }}-{{ old_ctng_vendor }}-linux-gnu-gfortran
         - test -f ${PREFIX}/bin/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu-gfortran
         - find $PREFIX/lib -iname omp_lib.mod | grep '.'
         - find $PREFIX/lib -iname omp_lib.h | grep '.'
-        - pushd tests/fortomp
-        - sh test_fort.sh   # [target_platform == ctng_target_platform]
+{% if bootstrapping == 'no' %}
+        - pushd tests/fortomp || exit 1
+        -   sh test_fort.sh   # [target_platform == ctng_target_platform]
+        - popd
       files:
         - tests/fortomp/*
+{% endif %}
     about:
       summary: GNU Fortran Compiler
       home: https://gcc.gnu.org/
