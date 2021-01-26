@@ -12,9 +12,9 @@ ctng_cpu_arch:
 #ctng_gdb:     # [not ppc64le]
 #  - 7.12.1    # [not ppc64le]
 ctng_gcc:
-  - 10.2.1
-  - 10.2.1
-  - 10.2.1
+  - 10.2.0
+  - 10.2.0
+  - 10.2.0
 libgfortran_soname:
   - 5
   - 5
