@@ -43,7 +43,7 @@ ctng_vendor:
 ctng_gcc_build_number:
   - 17
 _libgcc_mutex:
-  - 0.1 anaconda_defaults
+  - 0.1 main
 ctng_gmp:
   - 6.1.2
 ctng_isl:
