@@ -19,6 +19,18 @@ else
   DOWNLOADER_OUT="-O"
 fi
 
+if [[ ${target_platform} =~ osx-.* ]]; then
+  if [[ ! -f ${BUILD_PREFIX}/bin/llvm-objcopy ]]; then
+    echo "no llvm-objcopy"
+    exit 1
+  fi
+  ln -s ${BUILD_PREFIX}/bin/llvm-objcopy ${BUILD_PREFIX}/bin/x86_64-apple-darwin19.6.0-objcopy
+  chmod +x ${BUILD_PREFIX}/bin/x86_64-apple-darwin19.6.0-objcopy
+  ln -s ${BUILD_PREFIX}/bin/llvm-objcopy ${BUILD_PREFIX}/bin/objcopy
+  chmod +x ${BUILD_PREFIX}/bin/objcopy
+  unset CC CXX
+fi
+
 mkdir -p ${SYS_PREFIX}/conda-bld/src_cache/
 # Some kernels are not on kernel.org, such as the CentOS 5.11 one used (and heavily patched) by RedHat.
 if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.bz2" ]] && \

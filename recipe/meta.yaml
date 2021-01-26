@@ -12,7 +12,6 @@ build:
   merge_build_host: False
   # defined in conda_build_config.yaml so that we can keep it associated with a particular GCC version number
   number: {{ build_num | default(0) }}
-  skip: True  # [not linux or ((aarch64 or ppc64le or s390x) and target_platform != ctng_target_platform)]
   # The CentOS7 system libraries should be used for everything here.
   # We do not have CDT packages yet, nor compilers that would use them!
   missing_dso_whitelist:
@@ -27,6 +26,9 @@ requirements:
   build:
     - crosstool-ng >=1.24.0,<1.25
 {% if bootstrapping != 'yes' %}
+    - {{ compiler('cxx') }} # [osx]
+    - llvm-tools  # [osx]
+    - wget  # [osx]
     - make
     - bash  # [osx]
     - autoconf  # [linux64]
@@ -275,7 +277,6 @@ outputs:
       number: {{ build_num }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
-      skip: True   # [target_platform != ctng_target_platform]
       missing_dso_whitelist:
         - "*"
       ignore_run_exports:
@@ -308,7 +309,6 @@ outputs:
       number: {{ build_num }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
-      skip: True   # [target_platform != ctng_target_platform]
       missing_dso_whitelist:
         - "*"
       ignore_run_exports:
@@ -337,7 +337,6 @@ outputs:
       number: {{ build_num }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
-      skip: True   # [target_platform != ctng_target_platform]
       missing_dso_whitelist:
         - "*"
       run_exports:
@@ -370,7 +369,6 @@ outputs:
         - openmp_impl 9999
     build:
       string: 1_gnu
-      skip: True   # [target_platform != ctng_target_platform]
       run_exports:
         strong:
           - {{ pin_subpackage("_openmp_mutex", max_pin=None) }}
@@ -387,7 +385,6 @@ outputs:
   - name: libgfortran-ng
     target: {{ ctng_target_platform }}
     build:
-      skip: True   # [target_platform != ctng_target_platform]
     requirements:
       run:
         - libgfortran{{ libgfortran_soname }} {{ ctng_gcc }}.*
@@ -406,7 +403,6 @@ outputs:
       number: {{ build_num }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
-      skip: True   # [target_platform != ctng_target_platform]
       missing_dso_whitelist:
         - "*"
       ignore_run_exports:
