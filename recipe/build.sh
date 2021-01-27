@@ -109,7 +109,9 @@ if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-
         exit 1
       fi
     fi
-    unset CFLAGS CXXFLAGS LDFLAGS
+    echo "CT-NG CONFIG IS:"
+    cat .config
+    unset CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
     ct-ng build || (tail -n 1000 build.log && exit 1)
 fi
 
