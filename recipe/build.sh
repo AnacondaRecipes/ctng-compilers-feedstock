@@ -2,6 +2,13 @@
 
 set -x
 
+if [[ ${BOOTSTRAPPING} == yes ]]; then
+  # GCC's testsuite fails without this:
+  # [ALL  ]    /opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/xgcc -B/opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/ -xc -nostdinc /dev/null -S -o /dev/null -fself-test=/opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/src/gcc/gcc/testsuite/selftests
+  # [ALL  ]    /opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/cc1: error while loading shared libraries: libzstd.so.1: cannot open shared object file: No such file or directory
+  export LD_LIBRARY_PATH=${SYS_PREFIX}/lib:${LD_LIBRARY_PATH}
+fi
+
 if [[ "${ctng_cpu_arch}" == "aarch64" ]]; then
     rm -f $BUILD_PREFIX/share/crosstool-ng/packages/glibc/2.17/*-glibc-*.patch
 fi

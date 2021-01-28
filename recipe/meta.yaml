@@ -1,5 +1,11 @@
-{% set bootstrapping = os.environ.get('CONDA_BUILD_BOOTSTRAPPING', '') %}
+{% set bootstrapping = os.environ.get('CONDA_BUILD_BOOTSTRAPPING', 'no') %}
 {% set build_num = ctng_gcc_build_number %}
+
+{% if bootstrapping == 'yes' %}
+{% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM + '_bootstrapping' %}
+{% else %}
+{% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM %}
+{% endif %}
 
 package:
   name: ctng-compilers
@@ -12,15 +18,13 @@ build:
   merge_build_host: False
   # defined in conda_build_config.yaml so that we can keep it associated with a particular GCC version number
   number: {{ build_num | default(0) }}
+  string: {{ build_string }}
+  script_env:
+    - BOOTSTRAPPING={{ bootstrapping }}
   # The CentOS7 system libraries should be used for everything here.
   # We do not have CDT packages yet, nor compilers that would use them!
   missing_dso_whitelist:
     - "*"
-{% if bootstrapping == 'yes' %}
-  string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_bootstrapping
-{% else %}
-  string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
-{% endif %}
 
 requirements:
   build:
@@ -45,6 +49,9 @@ outputs:
     script: install-libgcc-devel.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
       missing_dso_whitelist:
@@ -61,6 +68,9 @@ outputs:
     script: install-libstdc++-devel.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
       missing_dso_whitelist:
@@ -77,6 +87,9 @@ outputs:
     script: install-gcc.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation:
         - 'bin/*'
@@ -140,6 +153,9 @@ outputs:
     script: install-g++.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation:
         - 'bin/*'
@@ -184,6 +200,9 @@ outputs:
     script: install-gfortran.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation:
         - 'bin/*'
@@ -244,6 +263,9 @@ outputs:
     script: install-binutils.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation:
         - 'bin/*'
@@ -275,6 +297,9 @@ outputs:
     script: install-libstdc++.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
       missing_dso_whitelist:
@@ -307,6 +332,9 @@ outputs:
         - {{ pin_subpackage("libgomp", exact=True) }}
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
       missing_dso_whitelist:
@@ -335,6 +363,9 @@ outputs:
         - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x]
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
       missing_dso_whitelist:
@@ -401,6 +432,9 @@ outputs:
     script: install-libgfortran.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation: False
       missing_dso_whitelist:
@@ -427,6 +461,9 @@ outputs:
     script: install-gdb.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       missing_dso_whitelist:
         - "*"
     about:
@@ -442,6 +479,9 @@ outputs:
     script: install-duma.sh
     build:
       number: {{ build_num }}
+      string: {{ build_string }}
+      script_env:
+        - BOOTSTRAPPING={{ bootstrapping }}
       detect_binary_files_with_prefix: False
       binary_relocation:
         - 'bin/*'
