@@ -3,10 +3,27 @@
 set -x
 
 if [[ ${BOOTSTRAPPING} == yes ]]; then
+  # When you build with your own compilers, even if they're in /opt/cfs, crosstool-ng fails to link because it strips too many flags
+  # meaning we do not get to -Wl,-rpath the search for libstdc++ and it loads the system one instead.
   # GCC's testsuite fails without this:
   # [ALL  ]    /opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/xgcc -B/opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/ -xc -nostdinc /dev/null -S -o /dev/null -fself-test=/opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/src/gcc/gcc/testsuite/selftests
   # [ALL  ]    /opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/cc1: error while loading shared libraries: libzstd.so.1: cannot open shared object file: No such file or directory
-  export LD_LIBRARY_PATH=${SYS_PREFIX}/lib:${LD_LIBRARY_PATH}
+  # export LD_LIBRARY_PATH=${SYS_PREFIX}/lib:${LD_LIBRARY_PATH}
+  FOUND_DTS=no
+  for DTS in "9 8 7"; do
+    if [[ -d /opt/rh/devtoolset-${DTS}/root/usr ]]; then
+      FOUND_DTS=yes
+      PATH=/opt/rh/devtoolset-${DTS}/root/usr/bin:${PATH}
+      break
+    fi
+  done
+  if [[ ${FOUND_DTS} == no ]]; then
+    echo "ERROR :: Failed to find devtoolset. ctng-compilers-feedstock can only be bootstrapped"
+    echo "ERROR :: with this at present. Maybe:"
+    echo "ERROR :: yum install -y centos-release-scl"
+    echo "ERROR :: yum install -y devtoolset-7"
+    exit 1
+  fi
 fi
 
 if [[ "${ctng_cpu_arch}" == "aarch64" ]]; then
