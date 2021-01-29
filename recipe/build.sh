@@ -10,7 +10,7 @@ if [[ ${BOOTSTRAPPING} == yes ]]; then
   # [ALL  ]    /opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/cc1: error while loading shared libraries: libzstd.so.1: cannot open shared object file: No such file or directory
   # export LD_LIBRARY_PATH=${SYS_PREFIX}/lib:${LD_LIBRARY_PATH}
   FOUND_DTS=no
-  for DTS in "9 8 7"; do
+  for DTS in 9 8 7; do
     if [[ -d /opt/rh/devtoolset-${DTS}/root/usr ]]; then
       FOUND_DTS=yes
       PATH=/opt/rh/devtoolset-${DTS}/root/usr/bin:${PATH}
