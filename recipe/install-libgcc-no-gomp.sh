@@ -22,5 +22,5 @@ rm -f ${PREFIX}/${CHOST}/sysroot/lib/libgomp.so.${libgomp_ver}
 # note that this code is remaking more links than the ones we want in this
 # package but that is ok
 pushd ${PREFIX}/lib
-ln -s libgomp.so.${libgomp_ver} libgomp.so.${libgomp_ver:0:1}
+  ln -s libgomp.so.${libgomp_ver} libgomp.so.${libgomp_ver:0:1}
 popd

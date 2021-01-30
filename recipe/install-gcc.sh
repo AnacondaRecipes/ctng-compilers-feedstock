@@ -3,22 +3,24 @@ set -e -x
 CHOST=$(${SRC_DIR}/.build/*-*-*-*/build/build-cc-gcc-final/gcc/xgcc -dumpmachine)
 _libdir=libexec/gcc/${CHOST}/${PKG_VERSION}
 
+declare -a COMMON_MAKE_OPTS=()
+COMMON_MAKE_OPTS+=(prefix=${PREFIX} exec_prefix=${PREFIX})
 # libtool wants to use ranlib that is here, macOS install doesn't grok -t etc
 # .. do we need this scoped over the whole file though?
 export PATH=${SRC_DIR}/gcc_built/bin:${SRC_DIR}/.build/${CHOST}/buildtools/bin:${SRC_DIR}/.build/tools/bin:${PATH}
 
 pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
   # We may not have built with plugin support so failure here is not fatal:
-  make prefix=${PREFIX} install-lto-plugin || true
-  make -C gcc prefix=${PREFIX} install-driver install-cpp install-gcc-ar install-headers install-plugin install-lto-wrapper install-collect2
+  make "${COMMON_MAKE_OPTS[@]}" install-lto-plugin || true
+  make -C gcc "${COMMON_MAKE_OPTS[@]}" install-driver install-cpp install-gcc-ar install-headers install-plugin install-lto-wrapper install-collect2
   # not sure if this is the same as the line above.  Run both, just in case
-  make -C lto-plugin prefix=${PREFIX} install
+  make -C lto-plugin "${COMMON_MAKE_OPTS[@]}" install
   install -dm755 ${PREFIX}/lib/bfd-plugins/
 
   # statically linked, so this so does not exist
   # ln -s $PREFIX/lib/gcc/$CHOST/liblto_plugin.so ${PREFIX}/lib/bfd-plugins/
 
-  make -C libcpp prefix=${PREFIX} install
+  make -C libcpp "${COMMON_MAKE_OPTS[@]}" install
 
   # Include languages we do not have any other place for here (and also lto1)
   for file in gnat1 brig1 cc1 go1 lto1 cc1obj cc1objplus; do
@@ -36,7 +38,7 @@ pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
     fi
   done
 
-  # make -C ${CHOST}/libgcc prefix=${PREFIX} install
+  # make -C ${CHOST}/libgcc "${COMMON_MAKE_OPTS[@]}" install
 
   # mkdir -p $PREFIX/$CHOST/sysroot/lib
 
@@ -45,43 +47,44 @@ pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
   #   cp ${SRC_DIR}/gcc_built/$CHOST/sysroot/lib/libquadmath.so* $PREFIX/$CHOST/sysroot/lib
   # fi
 
-  make prefix=${PREFIX}/lib/gcc/${CHOST}/${ctng_gcc} install-libcc1
+  make prefix=${PREFIX}/lib/gcc/${CHOST}/${ctng_gcc} \
+       exec_prefix=${PREFIX}/lib/gcc/${CHOST}/${ctng_gcc} install-libcc1
   install -d ${PREFIX}/share/gdb/auto-load/usr/lib
 
-  make prefix=${PREFIX} install-fixincludes
-  make -C gcc prefix=${PREFIX} install-mkheaders
+  make "${COMMON_MAKE_OPTS[@]}" install-fixincludes
+  make -C gcc "${COMMON_MAKE_OPTS[@]}" install-mkheaders
 
   if [[ -d ${CHOST}/libgomp ]]; then
-    make -C ${CHOST}/libgomp prefix=${PREFIX} install-nodist_{libsubinclude,toolexeclib}HEADERS
+    make -C ${CHOST}/libgomp "${COMMON_MAKE_OPTS[@]}" install-nodist_{libsubinclude,toolexeclib}HEADERS
   fi
 
   if [[ -d ${CHOST}/libitm ]]; then
-    make -C ${CHOST}/libitm prefix=${PREFIX} install-nodist_toolexeclibHEADERS
+    make -C ${CHOST}/libitm "${COMMON_MAKE_OPTS[@]}" install-nodist_toolexeclibHEADERS
   fi
 
   if [[ -d ${CHOST}/libquadmath ]]; then
-    make -C ${CHOST}/libquadmath prefix=${PREFIX} install-nodist_libsubincludeHEADERS
+    make -C ${CHOST}/libquadmath "${COMMON_MAKE_OPTS[@]}" install-nodist_libsubincludeHEADERS
   fi
 
   if [[ -d ${CHOST}/libsanitizer ]]; then
-    make -C ${CHOST}/libsanitizer prefix=${PREFIX} install-nodist_{saninclude,toolexeclib}HEADERS
+    make -C ${CHOST}/libsanitizer "${COMMON_MAKE_OPTS[@]}" install-nodist_{saninclude,toolexeclib}HEADERS
   fi
 
   if [[ -d ${CHOST}/libsanitizer/asan ]]; then
-    make -C ${CHOST}/libsanitizer/asan prefix=${PREFIX} install-nodist_toolexeclibHEADERS
+    make -C ${CHOST}/libsanitizer/asan "${COMMON_MAKE_OPTS[@]}" install-nodist_toolexeclibHEADERS
   fi
 
   if [[ -d ${CHOST}/libsanitizer/tsan ]]; then
-    make -C ${CHOST}/libsanitizer/tsan prefix=${PREFIX} install-nodist_toolexeclibHEADERS
+    make -C ${CHOST}/libsanitizer/tsan "${COMMON_MAKE_OPTS[@]}" install-nodist_toolexeclibHEADERS
   fi
 
-  make -C libiberty prefix=${PREFIX} install
+  make -C libiberty "${COMMON_MAKE_OPTS[@]}" install
   # install PIC version of libiberty
   install -m644 libiberty/pic/libiberty.a ${PREFIX}/lib/gcc/${CHOST}/${ctng_gcc}
 
-  make -C gcc prefix=${PREFIX} install-man install-info
+  make -C gcc "${COMMON_MAKE_OPTS[@]}" install-man install-info
 
-  make -C gcc prefix=${PREFIX} install-po
+  make -C gcc "${COMMON_MAKE_OPTS[@]}" install-po
 
   # many packages expect this symlink
   [[ -f ${PREFIX}/bin/${CHOST}-cc ]] && rm ${PREFIX}/bin/${CHOST}-cc
