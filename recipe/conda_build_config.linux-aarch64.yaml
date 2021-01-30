@@ -30,7 +30,8 @@ ctng_isl:
 ctng_libc:
   - gnu
 ctng_kernel:
-  - 3.10
+  # amazonlinux:2
+  - 4.14
 ctng_libiconv:
   - 1.15
 ctng_mpc:
@@ -40,10 +41,10 @@ ctng_nature:
 ctng_ncurses:
   - 6.2
 gnu:
-  # amazonlinux:2 has 2.26
+  # amazonlinux:2
   - 2.26
 conda_glibc_ver:
-  # amazonlinux:2 has 2.26
+  # amazonlinux:2
   - 2.26
 openmp_ver:
   - 5.1
