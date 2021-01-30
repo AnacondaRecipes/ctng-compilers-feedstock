@@ -1,15 +1,17 @@
 set -e -x
 
 CHOST=$(${SRC_DIR}/.build/*-*-*-*/build/build-cc-gcc-final/gcc/xgcc -dumpmachine)
-_libdir=libexec/gcc/${CHOST}/${PKG_VERSION}
+declare -a COMMON_MAKE_OPTS=()
+COMMON_MAKE_OPTS+=(prefix=${PREFIX} exec_prefix=${PREFIX})
 
+_libdir=libexec/gcc/${CHOST}/${PKG_VERSION}
 # libtool wants to use ranlib that is here, macOS install doesn't grok -t etc
 # .. do we need this scoped over the whole file though?
 export PATH=${SRC_DIR}/gcc_built/bin:${SRC_DIR}/.build/${CHOST}/buildtools/bin:${SRC_DIR}/.build/tools/bin:${PATH}
 
 pushd ${SRC_DIR}/.build/$CHOST/build/build-cc-gcc-final/
 
-make -C gcc prefix=${PREFIX} c++.install-common
+make -C gcc "${COMMON_MAKE_OPTS[@]}" c++.install-common
 
 # How it used to be:
 # install -m755 -t ${PREFIX}/bin/ gcc/{cc1plus,lto1}
@@ -20,16 +22,16 @@ for file in cc1plus; do
 done
 
 # Following 3 are in libstdcxx-devel
-#make -C $CHOST/libstdc++-v3/src prefix=${PREFIX} install
-#make -C $CHOST/libstdc++-v3/include prefix=${PREFIX} install
-#make -C $CHOST/libstdc++-v3/libsupc++ prefix=${PREFIX} install
-make -C $CHOST/libstdc++-v3/python prefix=${PREFIX} install
+#make -C $CHOST/libstdc++-v3/src "${COMMON_MAKE_OPTS[@]}" install
+#make -C $CHOST/libstdc++-v3/include "${COMMON_MAKE_OPTS[@]}" install
+#make -C $CHOST/libstdc++-v3/libsupc++ "${COMMON_MAKE_OPTS[@]}" install
+make -C $CHOST/libstdc++-v3/python "${COMMON_MAKE_OPTS[@]}" install
 
 # Probably don't want to do this for cross-compilers
 # mkdir -p ${PREFIX}/share/gdb/auto-load/usr/lib/
 # cp ${SRC_DIR}/gcc_built/${CHOST}/sysroot/lib/libstdc++.so.6.*-gdb.py ${PREFIX}/share/gdb/auto-load/usr/lib/
 
-make -C libcpp prefix=${PREFIX} install
+make -C libcpp "${COMMON_MAKE_OPTS[@]}" install
 
 popd
 

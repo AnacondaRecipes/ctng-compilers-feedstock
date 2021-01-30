@@ -1,6 +1,8 @@
 set -e -x
 
 CHOST=$(${SRC_DIR}/.build/*-*-*-*/build/build-cc-gcc-final/gcc/xgcc -dumpmachine)
+declare -a COMMON_MAKE_OPTS=()
+COMMON_MAKE_OPTS+=(prefix=${PREFIX} exec_prefix=${PREFIX})
 
 # libtool wants to use ranlib that is here, macOS install doesn't grok -t etc
 # .. do we need this scoped over the whole file though?
@@ -8,7 +10,7 @@ export PATH=${SRC_DIR}/gcc_built/bin:${SRC_DIR}/.build/${CHOST}/buildtools/bin:$
 
 pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
 
-  make -C ${CHOST}/libgcc prefix=${PREFIX} install-shared
+  make -C ${CHOST}/libgcc "${COMMON_MAKE_OPTS[@]}" install-shared
 
   # TODO :: Also do this for libgfortran (and libstdc++ too probably?)
   sed -i.bak 's/.*cannot install.*/func_warning "Ignoring libtool error about cannot install to a directory not ending in"/' \
@@ -20,14 +22,14 @@ pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
                  ${CHOST}/${lib}/libtool
     fi
     if [[ -d ${CHOST}/${lib} ]]; then
-      make -C ${CHOST}/${lib} prefix=${PREFIX} install-toolexeclibLTLIBRARIES
-      make -C ${CHOST}/${lib} prefix=${PREFIX} install-nodist_fincludeHEADERS || true
+      make -C ${CHOST}/${lib} "${COMMON_MAKE_OPTS[@]}" install-toolexeclibLTLIBRARIES
+      make -C ${CHOST}/${lib} "${COMMON_MAKE_OPTS[@]}" install-nodist_fincludeHEADERS || true
     fi
   done
 
   for lib in libgomp libquadmath; do
     if [[ -d ${CHOST}/${lib} ]]; then
-      make -C ${CHOST}/${lib} prefix=${PREFIX} install-info
+      make -C ${CHOST}/${lib} "${COMMON_MAKE_OPTS[@]}" install-info
     fi
   done
 

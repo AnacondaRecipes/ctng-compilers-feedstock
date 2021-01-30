@@ -1,8 +1,10 @@
 set -e -x
 
 CHOST=$(${SRC_DIR}/.build/*-*-*-*/build/build-cc-gcc-final/gcc/xgcc -dumpmachine)
-_libdir=libexec/gcc/${CHOST}/${PKG_VERSION}
+declare -a COMMON_MAKE_OPTS=()
+COMMON_MAKE_OPTS+=(prefix=${PREFIX} exec_prefix=${PREFIX})
 
+_libdir=libexec/gcc/${CHOST}/${PKG_VERSION}
 # libtool wants to use ranlib that is here, macOS install doesn't grok -t etc
 # .. do we need this scoped over the whole file though?
 export PATH=${SRC_DIR}/gcc_built/bin:${SRC_DIR}/.build/${CHOST}/buildtools/bin:${SRC_DIR}/.build/tools/bin:${PATH}
@@ -12,8 +14,8 @@ pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
 # adapted from Arch install script from https://github.com/archlinuxarm/PKGBUILDs/blob/master/core/gcc/PKGBUILD
 # We cannot make install since .la files are not relocatable so libtool deliberately prevents it:
 # libtool: install: error: cannot install `libgfortran.la' to a directory not ending in ${SRC_DIR}/work/gcc_built/${CHOST}/lib/../lib
-make -C ${CHOST}/libgfortran prefix=${PREFIX} all-multi libgfortran.spec ieee_arithmetic.mod ieee_exceptions.mod ieee_features.mod config.h
-make -C gcc prefix=${PREFIX} fortran.install-{common,man,info}
+make -C ${CHOST}/libgfortran "${COMMON_MAKE_OPTS[@]}" all-multi libgfortran.spec ieee_arithmetic.mod ieee_exceptions.mod ieee_features.mod config.h
+make -C gcc "${COMMON_MAKE_OPTS[@]}" fortran.install-{common,man,info}
 
 # How it used to be:
 # install -Dm755 gcc/f951 ${PREFIX}/${_libdir}/f951
