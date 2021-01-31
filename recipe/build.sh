@@ -136,7 +136,15 @@ if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-
     echo "CT-NG CONFIG IS:"
     cat .config
     unset CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
-    ct-ng build || (tail -n 1000 build.log && exit 1)
+    ct-ng build
+    if [[ $? != 0 ]]; then
+      tail -n 1000 build.log
+      cp build.log ${RECIPE_DIR}/bad.build.log
+      cp .config ${RECIPE_DIR}/bad_.config
+      exit 1
+    fi
+    cp build.log ${RECIPE_DIR}/good_build.log
+    cp .config ${RECIPE_DIR}/good_.config
 fi
 
 # increase stack size to prevent test failures
