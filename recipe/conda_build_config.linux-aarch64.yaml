@@ -30,14 +30,14 @@ ctng_isl:
 ctng_libc:
   - gnu
 ctng_kernel:
-  # amazonlinux:2
-  # - 4.14
+  # amazonlinux:2 (4.14.214)
+  - 4.14
   # centos8
   # - 4.18
   # centos7
-  - 4.18
+  # - 3.10
 ctng_libiconv:
-  - 1.15
+  - 1.16
 ctng_mpc:
   - 1.2.1
 ctng_nature:
@@ -46,15 +46,16 @@ ctng_ncurses:
   - 6.2
 gnu:
   # amazonlinux:2
-  # - 2.26
-  - 2.28
+  - 2.26
+  # - 2.28
 conda_glibc_ver:
   # amazonlinux:2
   # - 2.26
   # centos8
   # - 2.28
   # centos7
-  - 2.17
+  # - 2.17
+  - 2.26
 openmp_ver:
   - 5.1
 libgomp_ver:

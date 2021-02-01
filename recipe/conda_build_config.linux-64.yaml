@@ -32,7 +32,7 @@ ctng_libc:
 ctng_kernel:
   - 2.6.32
 ctng_libiconv:
-  - 1.15
+  - 1.16
 ctng_mpc:
   - 1.2.1
 ctng_nature:
