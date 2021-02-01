@@ -137,16 +137,17 @@ if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-
     cat .config
     unset CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
     set +e
+    LOGINFIX=${ctng_target_platform}-c_${ctng_gcc}-k_${ctng-kernel}-g_${conda_glibc_ver}
     ct-ng build
     if [[ $? != 0 ]]; then
       tail -n 1000 build.log
-      cp build.log ${RECIPE_DIR}/bad_build.log
-      cp .config ${RECIPE_DIR}/bad_.config
+      cp build.log ${RECIPE_DIR}/bad_build_${LOGINFIX}.log
+      cp .config ${RECIPE_DIR}/bad_.config_${LOGINFIX}
       exit 1
     fi
     set -e
-    cp build.log ${RECIPE_DIR}/good_build.log
-    cp .config ${RECIPE_DIR}/good_.config
+    cp build.log ${RECIPE_DIR}/good_build_${LOGINFIX}.log
+    cp .config ${RECIPE_DIR}/good_.config_${LOGINFIX}
 fi
 
 # increase stack size to prevent test failures
