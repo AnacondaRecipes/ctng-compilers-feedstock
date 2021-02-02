@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -ex
 
 if [[ ${BOOTSTRAPPING} == yes ]]; then
   # When you build with your own compilers, even if they're in /opt/cfs, crosstool-ng fails to link because it strips too many flags
@@ -75,8 +75,8 @@ if [[ ${ctng_libc} == uClibc ]]; then
     ${DOWNLOADER_INSECURE} https://www.uclibc.org/downloads/uClibc-${ctng_uClibc}.tar.xz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/uClibc-${ctng_uClibc}.tar.xz
   fi
 else
-  if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/glibc-${gnu}.tar.bz2" ]]; then
-    ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/libc/glibc-${gnu}.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/glibc-${gnu}.tar.bz2
+  if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/glibc-${conda_glibc_ver}.tar.bz2" ]]; then
+    ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/libc/glibc-${conda_glibc_ver}.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/glibc-${conda_glibc_ver}.tar.bz2
   fi
 fi
 

@@ -67,12 +67,6 @@ ctng_nature:
   - shared
 ctng_ncurses:
   - 6.2
-gnu:
-  - 2.17
-  - 2.17
-  # amazonlinux:2 has 2.26
-  - 2.26
-#  - 2.17
 conda_glibc_ver:
   - 2.17
   - 2.17
@@ -88,7 +82,6 @@ libgomp_ver:
 zip_keys:
   - - conda_glibc_ver
     - old_ctng_vendor
-    - gnu
     - ctng_kernel
     - ctng_sample
     - ctng_cpu_arch

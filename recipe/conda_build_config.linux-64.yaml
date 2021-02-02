@@ -17,6 +17,8 @@ ctng_binutils:
   - 2.36
 ctng_target_platform:
   - linux-aarch64
+ctng_old_vendor:
+  - conda_cos7
 ctng_vendor:
   - conda
 ctng_gcc_build_number:
@@ -39,9 +41,6 @@ ctng_nature:
   - shared
 ctng_ncurses:
   - 6.2
-gnu:
-  # amazonlinux:2 has 2.26
-  - 2.12
 conda_glibc_ver:
   # amazonlinux:2 has 2.26
   - 2.12
@@ -52,7 +51,6 @@ libgomp_ver:
 
 zip_keys:
   - - conda_glibc_ver
-    - gnu
     - ctng_kernel
     - ctng_sample
     - ctng_cpu_arch
