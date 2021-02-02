@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 function write_config_var() {
+  set -eu
+
   local _dst=${1}; shift
 
   local _VAR_CT_VAR="$@"
@@ -71,12 +73,22 @@ function write_ctng_package_versions() {
   local _dst="${1}"
 
   declare -a _extras
+  set +u
   if [[ -n "${ctng_gdb}" ]]; then
+    set -u
     _extras+=("gdb_version,CT_GDB_VERSION")
+    _extras+=("ctng_gdb_version=gdb,${ctng_gdb}")
   fi
+  set +u
   if [[ -n "${ctng_duma}" ]]; then
+    set -u
     _extras+=("duma_version,CT_DUMA_VERSION")
+    # TODO :: Fix this in crosstool-ng, 200-duma.sh requires
+    #         version numbers to be supplied with _'s insead
+    #         of .'s for no good reason.
+    # _extras+=("duma_version=duma,${ctng_duma//./_}")
   fi
+  set -u
   # Compounds for bits that have different families
   local ctng_linux_version=linux,${ctng_kernel}
   local _libc=${ctng_libc#ctng_}
@@ -86,10 +98,6 @@ function write_ctng_package_versions() {
   local ctng_libc_version=${_libc},${!ctng_libc}
   local ctng_compiler_version=gcc,${ctng_gcc}
   local ctng_binutils_version=binutils,${ctng_binutils}
-  local ctng_gdb_version=gdb,${ctng_gdb}
-  # TODO :: Fix this in crosstool-ng, 200-duma.sh requires
-  #         version numbers to be supplied with _'s insead
-  #         of .'s for no good reason.
   local duma_version=duma,${ctng_duma//./_}
   local _VAR_CT_VAR
   for _VAR_CT_VAR in                           \

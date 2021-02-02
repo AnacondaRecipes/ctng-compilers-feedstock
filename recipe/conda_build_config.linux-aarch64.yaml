@@ -25,30 +25,36 @@ ctng_gcc_build_number:
   - 0
 _libgcc_mutex:
   - 0.1 main
+ctng_duma:
+  - 2.5.15
 ctng_gmp:
   - 6.2.1
 ctng_isl:
   - 0.23
 ctng_libc:
   - gnu
+gnu:
+  - 2.26
+conda_glibc_ver:
+  - 2.26
 ctng_kernel:
-  # amazonlinux:2 (4.14.214)
   - 4.14
-  # centos8
-  # - 4.18
-  # centos7
-  # - 3.10
 ctng_libiconv:
   - 1.16
+ctng_gettext:
+  - 1.19
+ctng_mpfr:
+  - 4.0.2
 ctng_mpc:
   - 1.2.1
+# ctng_gdb:
+#   - 1
+# gdb_version:
+#   - 10.1
 ctng_nature:
   - shared
 ctng_ncurses:
   - 6.2
-conda_glibc_ver:
-  # amazonlinux:2
-  - 2.26
 openmp_ver:
   - 5.1
 libgomp_ver:
