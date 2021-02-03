@@ -25,8 +25,8 @@ ctng_gcc_build_number:
   - 0
 _libgcc_mutex:
   - 0.1 main
-ctng_duma:
-  - 2.5.15
+# ctng_duma:
+#   - 2.5.15
 ctng_gmp:
   - 6.2.1
 ctng_isl:
