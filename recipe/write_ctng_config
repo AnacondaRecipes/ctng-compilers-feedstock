@@ -82,6 +82,7 @@ function write_ctng_package_versions() {
   set +u
   if [[ -n "${ctng_duma}" ]]; then
     set -u
+    local duma_version=duma,${ctng_duma//./_}
     _extras+=("duma_version,CT_DUMA_VERSION")
     # TODO :: Fix this in crosstool-ng, 200-duma.sh requires
     #         version numbers to be supplied with _'s insead
@@ -98,7 +99,6 @@ function write_ctng_package_versions() {
   local ctng_libc_version=${_libc},${!ctng_libc}
   local ctng_compiler_version=gcc,${ctng_gcc}
   local ctng_binutils_version=binutils,${ctng_binutils}
-  local duma_version=duma,${ctng_duma//./_}
   local _VAR_CT_VAR
   for _VAR_CT_VAR in                           \
     ctng_vendor,CT_TARGET_VENDOR               \
