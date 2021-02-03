@@ -5,6 +5,10 @@ function write_config_var() {
 
   local _dst=${1}; shift
 
+  if [[ -z ${1} ]]; then
+    return
+  fi
+
   local _VAR_CT_VAR="$@"
   local _VAR=$(echo "${_VAR_CT_VAR}" | sed "s,^\([^\,]*\)\,.*,\1,")
   local _CT_VAR=$(echo "${_VAR_CT_VAR}" | sed "s,^[^\,]*\,\(.*\),\1,")
@@ -72,7 +76,7 @@ function write_config_var() {
 function write_ctng_package_versions() {
   local _dst="${1}"
 
-  declare -a _extras=()
+  declare -a _extras=('')
   set +u
   if [[ -n "${ctng_gdb}" ]]; then
     set -u
