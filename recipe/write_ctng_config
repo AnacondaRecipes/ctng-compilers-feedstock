@@ -72,7 +72,7 @@ function write_config_var() {
 function write_ctng_package_versions() {
   local _dst="${1}"
 
-  declare -a _extras
+  declare -a _extras=()
   set +u
   if [[ -n "${ctng_gdb}" ]]; then
     set -u
