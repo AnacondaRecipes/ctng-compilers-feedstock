@@ -16,7 +16,7 @@ libgfortran_soname:
 ctng_binutils:
   - 2.36
 ctng_target_platform:
-  - linux-aarch64
+  - linux-64
 ctng_old_vendor:
   - conda_cos7
 ctng_vendor:
