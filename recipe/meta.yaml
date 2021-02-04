@@ -108,8 +108,7 @@ outputs:
         - __glibc
     requirements:
       host:
-        # - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
-        - sysroot_{{ ctng_target_platform }} {{ 2.26 }}
+        - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
         - {{ pin_subpackage("libgomp", exact=True) }}               # [target_platform == ctng_target_platform]
         - {{ pin_subpackage("libstdcxx-ng", exact=True) }}          # [target_platform == ctng_target_platform]
         - {{ pin_subpackage("libgcc-ng", exact=True) }}             # [target_platform == ctng_target_platform]
@@ -131,8 +130,7 @@ outputs:
         - libgcc-ng >={{ ctng_gcc }}
     test:
       requires:
-        # - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
-        - sysroot_{{ ctng_target_platform }} {{ 2.26 }}
+        - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
       files:
         - tests
       commands:
@@ -184,8 +182,7 @@ outputs:
         - libstdcxx-ng >={{ ctng_gcc }}
     test:
       requires:
-        # - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
-        - sysroot_{{ ctng_target_platform }} {{ 2.26 }}
+        - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
       files:
         - tests
       commands:
@@ -243,8 +240,7 @@ outputs:
 {% if bootstrapping == 'no' %}
         - cmake
 {% endif %}
-        # - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
-        - sysroot_{{ ctng_target_platform }} {{ 2.26 }}
+        - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
       commands:
         - test -f ${PREFIX}/bin/{{ ctng_cpu_arch }}-{{ old_ctng_vendor }}-linux-gnu-gfortran
         - test -f ${PREFIX}/bin/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu-gfortran
