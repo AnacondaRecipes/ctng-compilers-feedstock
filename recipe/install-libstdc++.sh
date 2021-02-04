@@ -1,6 +1,8 @@
 set -e -x
 
 CHOST=$(${SRC_DIR}/.build/*-*-*-*/build/build-cc-gcc-final/gcc/xgcc -dumpmachine)
+declare -a COMMON_MAKE_OPTS=()
+COMMON_MAKE_OPTS+=(prefix=${PREFIX} exec_prefix=${PREFIX})
 
 # libtool wants to use ranlib that is here, macOS install doesn't grok -t etc
 # .. do we need this scoped over the whole file though?
@@ -8,8 +10,8 @@ export PATH=${SRC_DIR}/gcc_built/bin:${SRC_DIR}/.build/${CHOST}/buildtools/bin:$
 
 pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
 
-  make -C ${CHOST}/libstdc++-v3/src prefix=${PREFIX} install-toolexeclibLTLIBRARIES
-  make -C ${CHOST}/libstdc++-v3/po prefix=${PREFIX} install
+  make -C ${CHOST}/libstdc++-v3/src "${COMMON_MAKE_OPTS[@]}" install-toolexeclibLTLIBRARIES
+  make -C ${CHOST}/libstdc++-v3/po "${COMMON_MAKE_OPTS[@]}" install
 
 popd
 
