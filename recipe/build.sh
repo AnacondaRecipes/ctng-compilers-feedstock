@@ -57,17 +57,17 @@ fi
 
 mkdir -p ${SYS_PREFIX}/conda-bld/src_cache/
 # Some kernels are not on kernel.org, such as the CentOS 5.11 one used (and heavily patched) by RedHat.
-if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.bz2" ]] && \
-   [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.xz" ]]; then
-  if [[ ${ctng_kernel} == 2.6.* ]]; then
-    ${DOWNLOADER} ftp://ftp.be.debian.org/pub/linux/kernel/v2.6/linux-${ctng_kernel}.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.bz2
-  elif [[ ${ctng_kernel} == 3.* ]]; then
-    # Necessary because crosstool-ng looks in the wrong location for this one.
-    ${DOWNLOADER} https://www.kernel.org/pub/linux/kernel/v3.x/linux-${ctng_kernel}.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.bz2
-  elif [[ ${ctng_kernel} == 4.* ]]; then
-    ${DOWNLOADER} https://www.kernel.org/pub/linux/kernel/v4.x/linux-${ctng_kernel}.tar.xz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.xz
-  fi
-fi
+# if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.bz2" ]] && \
+#    [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.xz" ]]; then
+#   if [[ ${ctng_kernel} == 2.6.* ]]; then
+#     ${DOWNLOADER} ftp://ftp.be.debian.org/pub/linux/kernel/v2.6/linux-${ctng_kernel}.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.bz2
+#   elif [[ ${ctng_kernel} == 3.* ]]; then
+#     # Necessary because crosstool-ng looks in the wrong location for this one.
+#     ${DOWNLOADER} https://www.kernel.org/pub/linux/kernel/v3.x/linux-${ctng_kernel}.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.bz2
+#   elif [[ ${ctng_kernel} == 4.* ]]; then
+#     ${DOWNLOADER} https://www.kernel.org/pub/linux/kernel/v4.x/linux-${ctng_kernel}.tar.xz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/linux-${ctng_kernel}.tar.xz
+#   fi
+# fi
 
 # Necessary because uclibc let their certificate expire, this is a bit hacky.
 if [[ ${ctng_libc} == uClibc ]]; then
@@ -90,9 +90,6 @@ fi
 if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/expat-2.2.0.tar.bz2" ]]; then
   ${DOWNLOADER_INSECURE} http://mirror.opencompute.org/onie/crosstool-NG/expat-2.2.0.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/expat-2.2.0.tar.bz2
 fi
-
-
-BUILD_NCPUS=$(($CPU_COUNT * 2))
 
 [[ -d ${SRC_DIR}/gcc_built ]] || mkdir -p ${SRC_DIR}/gcc_built
 
