@@ -2,42 +2,42 @@ ctng_sample:
   - x86_64-centos6-linux-gnu
   - powerpc64le-unknown-linux-gnu
   - aarch64-unknown-linux-gnu
-#  - s390x-ibm-linux-gnu
+  - s390x-ibm-linux-gnu
 ctng_cpu_arch:
   - x86_64
   - powerpc64le
   - aarch64
-#  - s390x
+  - s390x
 # gdb is optional - commenting this will disable gdb from being built.  For gcc 8.2, that's what we need to do.
 #ctng_gdb:     # [not ppc64le]
 #  - 7.12.1    # [not ppc64le]
 ctng_gcc:
-  - 10.2.0
-  - 10.2.0
-  - 10.2.0
-#  - 10.2.0
+  - 8.4.0
+  - 8.4.0
+  - 8.4.0
+  - 8.4.0
 libgfortran_soname:
   - 5
   - 5
   - 5
-#  - 5
+  - 5
 ctng_binutils:
   - 2.36
   - 2.36
   # aarch requires explicit this version to bootstrap
   - 2.36
   # s390x does not build proper with more recent binutils version
-#  - 2.36
+  - 2.36
 ctng_target_platform:
   - linux-64
   - linux-ppc64le
   - linux-aarch64
-#  - linux-s390x
+  - linux-s390x
 old_ctng_vendor:
   - conda_cos7
   - conda_cos7
+  - conda
   - conda_cos7
-#  - conda_cos7
 ctng_vendor:
   - conda
 #ctng_duma:
@@ -55,10 +55,8 @@ ctng_libc:
 ctng_kernel:
   - 3.10
   - 3.10
-  # aarch64 has sysroot for 4.10, so why we use here 3.10?
-  # amazonlinux:2 has 4.14.209
   - 4.14
-#  - 3.10
+  - 3.10
 ctng_libiconv:
   - 1.15
 ctng_mpc:
@@ -70,9 +68,8 @@ ctng_ncurses:
 conda_glibc_ver:
   - 2.17
   - 2.17
-  # amazonlinux:2 has 2.26
+  - 2.26
   - 2.17
-#  - 2.17
 # openmp versions
 openmp_ver:
   - 5.1
