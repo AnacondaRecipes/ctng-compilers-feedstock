@@ -9,20 +9,38 @@ if [[ ${BOOTSTRAPPING} == yes ]]; then
   # [ALL  ]    /opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/xgcc -B/opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/ -xc -nostdinc /dev/null -S -o /dev/null -fself-test=/opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/src/gcc/gcc/testsuite/selftests
   # [ALL  ]    /opt/cfs/conda-bld/ctng-compilers_1611857510222/work/.build/aarch64-conda-linux-gnu/build/build-cc-gcc-core-pass-1/./gcc/cc1: error while loading shared libraries: libzstd.so.1: cannot open shared object file: No such file or directory
   # export LD_LIBRARY_PATH=${SYS_PREFIX}/lib:${LD_LIBRARY_PATH}
-  FOUND_DTS=no
-  for DTS in 9 8 7; do
-    if [[ -d /opt/rh/devtoolset-${DTS}/root/usr ]]; then
-      FOUND_DTS=yes
-      PATH=/opt/rh/devtoolset-${DTS}/root/usr/bin:${PATH}
-      break
+  NEED_DTS=no
+  if which gcc > /dev/null 2>&1; then
+    SYS_GCC_VERSION=$(gcc --version | grep ^gcc | sed 's/^.* //g')
+    SYS_GCC_VERSION_MAJ=${SYS_GCC_VERSION%%:*}
+    if (( SYS_GCC_VERSION_MAJ < 8 )); then
+      echo "INFO :: System compilers (${SYS_GCC_VERSION}) are too old to build modern compilers"
+      echo "INFO :: .. will try to find devtoolset in /opt/rh instead."
+      NEED_DTS=yes
+    else
+      echo "INFO :: Proceeding with system compilers (${SYS_GCC_VERSION})"
     fi
-  done
-  if [[ ${FOUND_DTS} == no ]]; then
-    echo "ERROR :: Failed to find devtoolset. ctng-compilers-feedstock can only be bootstrapped"
-    echo "ERROR :: with this at present. Maybe:"
-    echo "ERROR :: yum install -y centos-release-scl"
-    echo "ERROR :: yum install -y devtoolset-7"
-    exit 1
+  else
+    echo "INFO :: No system compilers found"
+    echo "INFO :: .. will try to find devtoolset in /opt/rh instead."
+    NEED_DTS=yes
+  fi
+  if [[ ${NEED_DTS} == yes ]]; then
+    FOUND_DTS=no
+    for DTS in 9 8 7; do
+      if [[ -d /opt/rh/devtoolset-${DTS}/root/usr ]]; then
+        FOUND_DTS=yes
+        PATH=/opt/rh/devtoolset-${DTS}/root/usr/bin:${PATH}
+        break
+      fi
+    done
+    if [[ ${FOUND_DTS} == no ]]; then
+      echo "ERROR :: Failed to find devtoolset. ctng-compilers-feedstock can only be bootstrapped"
+      echo "ERROR :: with this at present. Maybe:"
+      echo "ERROR :: yum install -y centos-release-scl"
+      echo "ERROR :: yum install -y devtoolset-9-toolchain"
+      exit 1
+    fi
   fi
 fi
 

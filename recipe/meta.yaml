@@ -3,6 +3,10 @@
 
 {% if bootstrapping == 'yes' %}
 {% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM + '_bootstrapping' %}
+# You can use this to allow investigating errors in more recent glibcs than
+# you have RPMs to make the sysroot packages from.
+{% set hack_sysroot_ver = False %}
+# {% set hack_sysroot_ver = '2.17' %}
 {% else %}
 {% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM %}
 {% endif %}
@@ -108,7 +112,11 @@ outputs:
         - __glibc
     requirements:
       host:
+{% if hack_sysroot_ver %}
+        - sysroot_{{ ctng_target_platform }} {{ hack_sysroot_ver }}
+{% else %}
         - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
+{% endif %}
         - {{ pin_subpackage("libgomp", exact=True) }}               # [target_platform == ctng_target_platform]
         - {{ pin_subpackage("libstdcxx-ng", exact=True) }}          # [target_platform == ctng_target_platform]
         - {{ pin_subpackage("libgcc-ng", exact=True) }}             # [target_platform == ctng_target_platform]
@@ -130,7 +138,11 @@ outputs:
         - libgcc-ng >={{ ctng_gcc }}
     test:
       requires:
+{% if hack_sysroot_ver %}
+        - sysroot_{{ ctng_target_platform }} {{ hack_sysroot_ver }}
+{% else %}
         - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
+{% endif %}
       files:
         - tests
       commands:
@@ -182,7 +194,11 @@ outputs:
         - libstdcxx-ng >={{ ctng_gcc }}
     test:
       requires:
+{% if hack_sysroot_ver %}
+        - sysroot_{{ ctng_target_platform }} {{ hack_sysroot_ver }}
+{% else %}
         - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
+{% endif %}
       files:
         - tests
       commands:
@@ -240,7 +256,11 @@ outputs:
 {% if bootstrapping == 'no' %}
         - cmake
 {% endif %}
+{% if hack_sysroot_ver %}
+        - sysroot_{{ ctng_target_platform }} {{ hack_sysroot_ver }}
+{% else %}
         - sysroot_{{ ctng_target_platform }} {{ conda_glibc_ver }}
+{% endif %}
       commands:
         - test -f ${PREFIX}/bin/{{ ctng_cpu_arch }}-{{ old_ctng_vendor }}-linux-gnu-gfortran
         - test -f ${PREFIX}/bin/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu-gfortran
