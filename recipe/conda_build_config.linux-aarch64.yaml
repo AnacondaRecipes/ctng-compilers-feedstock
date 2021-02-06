@@ -3,13 +3,7 @@ ctng_sample:
 ctng_cpu_arch:
   - aarch64
 ctng_gcc:
-  # make: Entering directory `/opt/cfs/conda-bld/ctng-compilers_1611749948841/work/.build/x86_64-conda-linux-gnu/build/build-cc-gcc-final/x86_64-conda-linux-gnu/libsanitizer/lsan'
-  # make: *** No rule to make target `install-nodist_fincludeHEADERS'.  Stop.
-  # ..
-  # find ${PREFIX}/x86_64-conda-linux-gnu/lib -name '*\.a' -exec rm -rf '{}' ';'
-  # find: '${PREFIX}/x86_64-conda-linux-gnu/lib': No such file or directory
-  # subprocess.CalledProcessError: Command '['/usr/bin/bash', '-e', '/opt/cfs/conda-bld/ctng-compilers_1611749948841/work/install-libgomp.sh']' returned non-zero exit status 1.
-  - 8.4.0
+  - 10.2.0
 libgfortran_soname:
   - 5
 ctng_binutils:
