@@ -41,7 +41,7 @@ ctng_kernel:
 ctng_libiconv:
   - 1.16
 ctng_gettext:
-  - 1.19
+  - 0.20.1
 ctng_mpfr:
   - 4.0.2
 ctng_mpc:

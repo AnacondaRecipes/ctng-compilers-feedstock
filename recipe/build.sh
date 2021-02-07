@@ -87,6 +87,10 @@ mkdir -p ${SYS_PREFIX}/conda-bld/src_cache/
 #   fi
 # fi
 
+if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/gettext-${ctng_gettext}.tar.gz" ]]; then
+  ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/gettext/gettext-${ctng_gettext}.tar.gz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/gettext-${ctng_gettext}.tar.gz
+fi
+
 # Necessary because uclibc let their certificate expire, this is a bit hacky.
 if [[ ${ctng_libc} == uClibc ]]; then
   if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/uClibc-${ctng_uClibc}.tar.xz" ]]; then
