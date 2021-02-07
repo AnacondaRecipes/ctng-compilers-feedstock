@@ -3,7 +3,7 @@ ctng_sample:
 ctng_cpu_arch:
   - powerpc64le
 ctng_gcc:
-  - 8.4.0
+  - 10.2.0
 libgfortran_soname:
   - 5
 ctng_binutils:
