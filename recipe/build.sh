@@ -56,7 +56,7 @@ if [[ $(uname) == Darwin ]]; then
   DOWNLOADER_INSECURE=${DOWNLOADER}" --insecure"
   DOWNLOADER_OUT="-C - -o"
 else
-  DOWNLOADER="wget -c"
+  DOWNLOADER="wget -c -q"
   DOWNLOADER_INSECURE=${DOWNLOADER}" --no-check-certificate"
   DOWNLOADER_OUT="-O"
 fi
