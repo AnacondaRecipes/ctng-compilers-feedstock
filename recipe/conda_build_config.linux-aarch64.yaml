@@ -13,7 +13,7 @@ ctng_gcc:
 libgfortran_soname:
   - 5
 ctng_binutils:
-  - 2.36
+  - 2.36.1
 ctng_target_platform:
   - linux-aarch64
 old_ctng_vendor:

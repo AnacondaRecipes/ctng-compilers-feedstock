@@ -102,6 +102,10 @@ else
   fi
 fi
 
+if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/binutils-${ctng_binutils}.tar.xz" ]]; then
+  ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/binutils/binutils-${ctng_binutils}.tar.xz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/binutils-${ctng_binutils}.tar.xz
+fi
+
 # Necessary because CentOS5.11 is having some certificate issues.
 if [[ -n "${ctng_duma}" ]]; then
   if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/duma_${ctng_duma//./_}.tar.gz" ]]; then
