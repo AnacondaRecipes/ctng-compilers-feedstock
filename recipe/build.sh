@@ -12,7 +12,7 @@ if [[ ${BOOTSTRAPPING} == yes ]]; then
   NEED_DTS=no
   if which gcc > /dev/null 2>&1; then
     SYS_GCC_VERSION=$(gcc --version | grep ^gcc | sed 's/^.* //g')
-    SYS_GCC_VERSION_MAJ=${SYS_GCC_VERSION%%:*}
+    SYS_GCC_VERSION_MAJ=${SYS_GCC_VERSION%%.*}
     if (( SYS_GCC_VERSION_MAJ < 8 )); then
       echo "INFO :: System compilers (${SYS_GCC_VERSION}) are too old to build modern compilers"
       echo "INFO :: .. will try to find devtoolset in /opt/rh instead."
