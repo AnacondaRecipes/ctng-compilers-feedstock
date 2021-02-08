@@ -97,8 +97,8 @@ if [[ ${ctng_libc} == uClibc ]]; then
     ${DOWNLOADER_INSECURE} https://www.uclibc.org/downloads/uClibc-${ctng_uClibc}.tar.xz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/uClibc-${ctng_uClibc}.tar.xz
   fi
 else
-  if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/glibc-${conda_glibc_ver}.tar.bz2" ]]; then
-    ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/libc/glibc-${conda_glibc_ver}.tar.bz2 ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/glibc-${conda_glibc_ver}.tar.bz2
+  if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/glibc-${conda_glibc_ver}.tar.xz" ]]; then
+    ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/libc/glibc-${conda_glibc_ver}.tar.xz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/glibc-${conda_glibc_ver}.tar.xz
   fi
 fi
 
