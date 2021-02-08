@@ -128,7 +128,7 @@ if [[ ${kernel_arch} == aarch64 ]]; then
   kernel_arch=arm64
 elif [[ ${kernel_arch} == i686 ]]; then
   kernel_arch=x86
-elif [[ $[kernel_arch} == s390x ]]; then
+elif [[ ${kernel_arch} == s390x ]]; then
   kernel_arch=s390
 fi
 
