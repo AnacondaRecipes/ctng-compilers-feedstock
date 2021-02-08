@@ -87,6 +87,10 @@ mkdir -p ${SYS_PREFIX}/conda-bld/src_cache/
 #   fi
 # fi
 
+if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/gcc-${ctng_gcc}.tar.xz" ]]; then
+  ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/gcc/gcc-${ctng_gcc}/gcc-${ctng_gcc}.tar.xz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/gcc-${ctng_gcc}.tar.xz
+fi
+
 if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/gettext-${ctng_gettext}.tar.gz" ]]; then
   ${DOWNLOADER_INSECURE} https://ftp.gnu.org/gnu/gettext/gettext-${ctng_gettext}.tar.gz ${DOWNLOADER_OUT} ${SYS_PREFIX}/conda-bld/src_cache/gettext-${ctng_gettext}.tar.gz
 fi
