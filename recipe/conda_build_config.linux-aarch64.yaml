@@ -3,7 +3,9 @@ ctng_sample:
 ctng_cpu_arch:
   - aarch64
 ctng_gcc:
-  - 10.2.0
+# TODO :: Backport the 2.26 gcc 10.2 patches to 2.17
+#  - 10.2.0
+  - 8.4.0
 libgfortran_soname:
   - 5
 ctng_binutils:
