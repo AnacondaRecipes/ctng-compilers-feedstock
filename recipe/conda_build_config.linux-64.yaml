@@ -1,3 +1,5 @@
+use_amazon_linux:
+  - no
 ctng_sample:
   - x86_64-centos7-linux-gnu
 ctng_cpu_arch:
