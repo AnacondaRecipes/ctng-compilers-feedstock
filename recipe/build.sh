@@ -133,7 +133,7 @@ if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-
     sed -i.bak "s|# CT_DISABLE_MULTILIB_LIB_OSDIRNAMES is not set|CT_DISABLE_MULTILIB_LIB_OSDIRNAMES=n|g" .config
     sed -i.bak "s|CT_DISABLE_MULTILIB_LIB_OSDIRNAMES=y|CT_DISABLE_MULTILIB_LIB_OSDIRNAMES=n|g" .config
     sed -i.bak "s|CT_CC_GCC_USE_LTO=n|CT_CC_GCC_USE_LTO=y|g" .config
-    cat .config | grep CT_DISABLE_MULTILIB_LIB_OSDIRNAMES=y || exit 1
+    # cat .config | grep CT_DISABLE_MULTILIB_LIB_OSDIRNAMES=y || exit 1
     cat .config | grep CT_CC_GCC_USE_LTO=y || exit 1
     # Not sure why this is getting set to y since it depends on ! STATIC_TOOLCHAIN
     if [[ ${ctng_nature} == static ]]; then
