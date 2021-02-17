@@ -193,7 +193,7 @@ install -Dm644 $SRC_DIR/.build/src/gcc-${PKG_VERSION}/COPYING.RUNTIME \
 
 # Next problem: macOS targetting uClibc ends up with broken symlinks in sysroot/usr/lib:
 if [[ $(uname) == Darwin ]]; then
-  pushd ${PREFIX}/${CHOST}/sysroot/usr/lib
+  pushd ${PREFIX}/${CHOST}/sysroot/usr/lib64
   links=$(find . -type l | cut -c 3-)
   for link in ${links}; do
     target=$(readlink ${link} | sed 's#^/##' | sed 's#//#/#')
@@ -234,7 +234,7 @@ if [[ "$target_platform" == "$ctng_target_platform" ]]; then
 
   # make links to libs in the sysroot
   for lib in libgcc_s libstdc++ libgfortran libatomic libquadmath libitm lib{a,l,ub,t}san; do
-    ln -s ${PREFIX}/lib/${lib}.so* ${PREFIX}/${CHOST}/sysroot/lib/
+    ln -s ${PREFIX}/lib/${lib}.so* ${PREFIX}/${CHOST}/sysroot/lib64/
   done
 else
   source ${RECIPE_DIR}/install-libgcc.sh
