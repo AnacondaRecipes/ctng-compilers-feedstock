@@ -7,7 +7,7 @@ cp -r ${PREFIX}/${CHOST}/sysroot ${tmp_dir}/sysroot
 source ${RECIPE_DIR}/install-libgcc.sh
 
 # stash what we need and rm -rf the rest
-cp ${PREFIX}/lib/libgomp.so.${libgomp_ver} ${tmp_dir}/libgomp.so.${libgomp_ver}
+cp ${PREFIX}/lib64/libgomp.so.${libgomp_ver} ${tmp_dir}/libgomp.so.${libgomp_ver}
 cp -r ${PREFIX}/conda-meta ${tmp_dir}/conda-meta
 rm -rf ${PREFIX}/*
 
