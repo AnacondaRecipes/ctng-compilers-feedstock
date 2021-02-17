@@ -228,7 +228,7 @@ popd
 
 if [[ "$target_platform" == "$ctng_target_platform" ]]; then
   # making these this way so conda build doesn't muck with them
-  pushd ${PREFIX}/${CHOST}/sysroot/lib
+  pushd ${PREFIX}/${CHOST}/sysroot/lib64
     ln -sf ../../../lib/libgomp.so libgomp.so
   popd
 
