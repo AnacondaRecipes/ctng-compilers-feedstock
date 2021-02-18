@@ -80,7 +80,7 @@ outputs:
         - "*"
     test:
       commands:
-        - test -f ${PREFIX}/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu/lib/libstdc++.a
+        - test -f ${PREFIX}/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu/lib64/libstdc++.a
     about:
       summary: The GNU C++ headers and development libraries
       home: https://gcc.gnu.org/
@@ -107,6 +107,7 @@ outputs:
         - '*'
       runpath_whitelist:
         - "x86_64-{{ ctng_vendor }}-linux-gnu/sysroot/lib/libpthread-2.12.2.so"
+        - "aarch64-{{ ctng_vendor }}-linux-gnu/sysroot/lib64/libpthread-2.26.so"
       ignore_run_exports:
         - __glibc
     requirements:
