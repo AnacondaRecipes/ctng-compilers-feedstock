@@ -16,7 +16,7 @@ pushd ${SRC_DIR}/.build/${CHOST}/build/build-cc-gcc-final/
 popd
 
 mkdir -p ${PREFIX}/lib
-mv ${PREFIX}/${CHOST}/lib/* ${PREFIX}/lib
+mv ${PREFIX}/${CHOST}/lib64/* ${PREFIX}/lib
 
 patchelf --set-rpath '$ORIGIN' ${PREFIX}/lib/libstdc++.so
 
