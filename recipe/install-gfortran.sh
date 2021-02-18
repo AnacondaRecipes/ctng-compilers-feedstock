@@ -25,7 +25,7 @@ for file in f951; do
   fi
 done
 
-cp ${CHOST}/libgfortran/libgfortran.spec ${PREFIX}/${CHOST}/sysroot/lib
+cp ${CHOST}/libgfortran/libgfortran.spec ${PREFIX}/${CHOST}/sysroot/lib64
 
 pushd ${PREFIX}/bin
   ln -s ${CHOST}-gfortran ${CHOST}-f95
