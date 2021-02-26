@@ -1,13 +1,11 @@
 use_amazon_linux:
-  - yes
+  - no
 ctng_sample:
   - aarch64-unknown-linux-gnu
 ctng_cpu_arch:
   - aarch64
 ctng_gcc:
-# TODO :: Backport the 2.26 gcc 10.2 patches to 2.17
-#  - 10.2.0
-  - 8.4.0
+  - 10.2.0
 libgfortran_soname:
   - 5
 ctng_binutils:
