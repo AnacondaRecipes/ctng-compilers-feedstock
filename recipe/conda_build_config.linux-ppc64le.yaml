@@ -1,3 +1,5 @@
+use_amazon_linux:
+  - no
 ctng_sample:
   - powerpc64le-unknown-linux-gnu
 ctng_cpu_arch:
@@ -7,7 +9,7 @@ ctng_gcc:
 libgfortran_soname:
   - 5
 ctng_binutils:
-  - 2.36
+  - 2.36.1
 ctng_target_platform:
   - linux-ppc64le
 old_ctng_vendor:
