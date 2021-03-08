@@ -5,9 +5,9 @@
 {% set hack_sysroot_ver = False %}
 # {% set hack_sysroot_ver = '2.17' %}
 
-{{% if bootstrapping == 'yes' %}
+{% if bootstrapping == 'yes' %}
 {% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM + '_bootstrapping' %}
-% else %}
+{% else %}
 {% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM %}
 {% endif %}
 
