@@ -127,7 +127,7 @@ fi
 if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-gfortran) ]]; then
     source ${RECIPE_DIR}/write_ctng_config
 
-    yes "" | ct-ng ${ctng_sample}
+    yes "" | make -r -f "${CONDA_PREFIX}/bin/ct-ng" ${ctng_sample}
     write_ctng_config_before .config
     # Apply some adjustments for conda.
     sed -i.bak "s|# CT_DISABLE_MULTILIB_LIB_OSDIRNAMES is not set|CT_DISABLE_MULTILIB_LIB_OSDIRNAMES=n|g" .config
@@ -146,7 +146,7 @@ if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-
         sed -i.bak "s|CT_BUILD=\"x86_64-pc-linux-gnu\"|CT_BUILD=\"x86_64-apple-darwin11\"|g" .config
     fi
     # Now ensure any changes we made above pull in other requirements by running oldconfig.
-    yes "" | ct-ng oldconfig
+    yes "" | make -r -f "${CONDA_PREFIX}/bin/ct-ng" oldconfig
     # Now filter out 'things that cause problems'. For example, depending on the base sample, you can end up with
     # two different glibc versions in-play.
     sed -i.bak '/CT_LIBC/d' .config
@@ -166,7 +166,7 @@ if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-
     unset CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
     set +e
     LOGINFIX=${ctng_target_platform}-c_${ctng_gcc}-k_${ctng-kernel}-g_${conda_glibc_ver}
-    ct-ng build
+    make -r -f "${CONDA_PREFIX}/bin/ct-ng" ct-ng build
     if [[ $? != 0 ]]; then
       tail -n 1000 build.log
       cp build.log ${RECIPE_DIR}/bad_build_${LOGINFIX}.log
