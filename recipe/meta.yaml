@@ -1,12 +1,13 @@
 {% set build_num = ctng_gcc_build_number %}
 
-{% if bootstrapping == 'yes' %}
-{% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM + '_bootstrapping' %}
 # You can use this to allow investigating errors in more recent glibcs than
 # you have RPMs to make the sysroot packages from.
 {% set hack_sysroot_ver = False %}
 # {% set hack_sysroot_ver = '2.17' %}
-{% else %}
+
+{{% if bootstrapping == 'yes' %}
+{% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM + '_bootstrapping' %}
+% else %}
 {% set build_string = 'h' + PKG_HASH + '_' + PKG_BUILDNUM %}
 {% endif %}
 
