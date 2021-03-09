@@ -39,8 +39,8 @@ requirements:
     - wget  # [osx]
     - make
     - bash  # [osx]
-    - autoconf  # [linux64]
-    - automake  # [linux64]
+    - autoconf  # [linux64 or (linux and aarch64)]
+    - automake  # [linux64 or (linux and aarch64)]
     - libtool
 {% endif %}
   # Need something here so that build does not get installed to a long prefix
@@ -347,7 +347,7 @@ outputs:
         - {{ pin_subpackage('_openmp_mutex', exact=True) }}
         - sysroot_{{ ctng_target_platform }}
       run:
-        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x]
+        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x or aarch64]
         - {{ pin_subpackage("_openmp_mutex", max_pin=None) }}
       run_constrained:
         - {{ pin_subpackage("libgomp", exact=True) }}
@@ -381,7 +381,7 @@ outputs:
       host:
         - sysroot_{{ ctng_target_platform }}
       run:
-        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x]
+        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x or aarch64]
     build:
       number: {{ build_num }}
       string: {{ build_string }}
@@ -414,7 +414,7 @@ outputs:
       host:
         - {{ pin_subpackage('libgomp', exact=True) }}
       run:
-        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x]
+        - _libgcc_mutex {{ _libgcc_mutex }}  # [linux64 or ppc64le or s390x or aarch64]
         - libgomp >=7.5.0
       run_constrained:
         # conflict with previous name
