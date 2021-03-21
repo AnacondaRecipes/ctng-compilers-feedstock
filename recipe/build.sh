@@ -166,7 +166,7 @@ if [[ ! -n $(find ${SRC_DIR}/gcc_built -iname ${ctng_cpu_arch}-${ctng_vendor}-*-
     unset CPPFLAGS CFLAGS CXXFLAGS LDFLAGS
     set +e
     LOGINFIX=${ctng_target_platform}-c_${ctng_gcc}-k_${ctng-kernel}-g_${conda_glibc_ver}
-    make -r -f "${CONDA_PREFIX}/bin/ct-ng" ct-ng build
+    make -r -f "${CONDA_PREFIX}/bin/ct-ng" build
     if [[ $? != 0 ]]; then
       tail -n 1000 build.log
       cp build.log ${RECIPE_DIR}/bad_build_${LOGINFIX}.log
