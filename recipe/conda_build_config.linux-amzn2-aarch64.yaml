@@ -27,7 +27,7 @@ old_ctng_vendor:
 ctng_vendor:
   - conda
 ctng_gcc_build_number:
-  - 0
+  - 51
 _libgcc_mutex:
   - 0.1 main
 # ctng_duma:
