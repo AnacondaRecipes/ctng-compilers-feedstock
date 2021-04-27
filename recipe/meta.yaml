@@ -81,7 +81,7 @@ outputs:
         - "*"
     test:
       commands:
-        - test -f ${PREFIX}/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu/lib64/libstdc++.a
+        - test -f ${PREFIX}/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu/lib/libstdc++.a
     about:
       summary: The GNU C++ headers and development libraries
       home: https://gcc.gnu.org/
@@ -108,7 +108,6 @@ outputs:
         - '*'
       runpath_whitelist:
         - "x86_64-{{ ctng_vendor }}-linux-gnu/sysroot/lib/libpthread-2.12.2.so"
-        - "aarch64-{{ ctng_vendor }}-linux-gnu/sysroot/lib64/libpthread-2.26.so"
       ignore_run_exports:
         - __glibc
     requirements:
@@ -152,7 +151,7 @@ outputs:
         - echo {{ ctng_vendor }}
         - echo {{ ctng_kernel }}
         - test -f ${PREFIX}/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu/sysroot/lib/libgomp.so   # [target_platform == ctng_target_platform]
-        - test `readlink ${PREFIX}/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu/sysroot/lib/libgomp.so` == "../../../lib/libgomp.so.1.0.0"  # # [target_platform == ctng_target_platform]
+        - test `readlink ${PREFIX}/{{ ctng_cpu_arch }}-{{ ctng_vendor }}-linux-gnu/sysroot/lib/libgomp.so` == "../../../lib/libgomp.so"  # [target_platform == ctng_target_platform]
         - test -f ${PREFIX}/bin/{{ ctng_cpu_arch }}-{{ old_ctng_vendor }}-linux-gnu-gcc
         - CC=$(${PREFIX}/bin/*-gcc -dumpmachine)-gcc
         - ${CC} -Wall tests/aligned_alloc.c -c -o c_aligned.o -v

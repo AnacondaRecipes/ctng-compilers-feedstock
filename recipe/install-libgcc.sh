@@ -38,12 +38,12 @@ popd
 mkdir -p ${PREFIX}/lib
 
 # no static libs
-find ${PREFIX}/${CHOST}/lib64 -name "*\.a" -exec rm -rf {} \;
+find ${PREFIX}/${CHOST}/lib -name "*\.a" -exec rm -rf {} \;
 # no libtool files
-find ${PREFIX}/${CHOST}/lib64 -name "*\.la" -exec rm -rf {} \;
+find ${PREFIX}/${CHOST}/lib -name "*\.la" -exec rm -rf {} \;
 
 if [[ "${PKG_NAME}" != gcc_impl* ]]; then
-  mv ${PREFIX}/${CHOST}/lib64/* ${PREFIX}/lib
+  mv ${PREFIX}/${CHOST}/lib/* ${PREFIX}/lib
   # clean up empty folder
   rm -rf ${PREFIX}/lib/gcc
 
