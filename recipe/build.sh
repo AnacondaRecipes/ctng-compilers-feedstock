@@ -107,7 +107,6 @@ fi
   --enable-plugin \
   --enable-gold \
   --disable-nls \
-  --disable-bootstrap \
   --disable-multilib \
   --enable-long-long \
   --with-sysroot=${SYSROOT_DIR} \
@@ -116,4 +115,6 @@ fi
   --with-gxx-include-dir="${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/include/c++" \
   "${GCC_CONFIGURE_OPTIONS[@]}"
 
-make -j${CPU_COUNT} || (cat ${TARGET}/libgomp/config.log; false)
+# Setting the CPU_COUNT=1 lets you see which job failed!
+#CPU_COUNT=1
+make -j${CPU_COUNT}
