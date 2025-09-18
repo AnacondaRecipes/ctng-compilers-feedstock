@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
     extra_pkgs=()
     if [[ "$build_platform" != "$target_platform" ]]; then
@@ -14,8 +15,24 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
         "gfortran_impl_${cross_target_platform}=${gcc_version}"
       )
     fi
+
+    # From recipe/yum_requirements.txt -- note that some of these are
+    # used in test environments so installing them here is not useful
+    extra_pkgs+=(
+	#wget
+	#m4
+	#patch
+	#gfortran_${cross_target_platform}
+	#gxx_${cross_target_platform}
+	# rsync # libiconv -> 11.2.0
+	#sed
+	make
+	# file # libiconv -> 11.2.0
+    )
     # Remove conda-forge/label/sysroot-with-crypt when GCC < 14 is dropped
+    #conda create -p $SRC_DIR/cf-compilers --yes --quiet \
     conda create -p $SRC_DIR/cf-compilers -c conda-forge/label/sysroot-with-crypt -c conda-forge --yes --quiet \
+	-c local \
       "binutils_impl_${build_platform}" \
       "gcc_impl_${build_platform}" \
       "gxx_impl_${build_platform}" \

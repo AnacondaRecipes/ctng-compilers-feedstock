@@ -83,6 +83,8 @@ outputs:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      overlinking_ignore_patterns:
+        - "*/lib/libgcc_s.so.*"
     requirements:
       build:
       host:
@@ -115,6 +117,8 @@ outputs:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      overlinking_ignore_patterns:
+        - "*/lib/libstdc++.so.*"
     requirements:
       build:
       host:
@@ -321,6 +325,7 @@ outputs:
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
+        - strace_{{ cross_target_platform }}
       files:
         - tests
       commands:
@@ -338,7 +343,7 @@ outputs:
         {% if target_platform == cross_target_platform %}
         - ${CXX} tzdb-override.o -o tzdb-override && ./tzdb-override
         - ${CXX} tzdb.o -o tzdb && ./tzdb
-        - strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
+        - $PREFIX/usr/bin/strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
         # also test without any environment activation
         - unset PREFIX
         - unset CONDA_PREFIX
@@ -402,6 +407,7 @@ outputs:
     test:
       requires:
         - cmake >=3.11,<4  # [x86_64 or aarch64 or ppc64le]
+        - make
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       commands:
         {% if cross_target_platform.startswith("linux-") %}
@@ -456,6 +462,8 @@ outputs:
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      overlinking_ignore_patterns:
+        - "lib/libstdc++.so.*"
     requirements:
       build:
       host:
@@ -485,6 +493,11 @@ outputs:
         - "*"
       run_exports:
         - libsanitizer {{ gcc_version }}
+      overlinking_ignore_patterns:
+        - "lib/libtsan.so.*"
+        - "lib/libasan.so.*"
+        - "lib/liblsan.so.*"
+        - "lib/libhwasan.so.*"
     requirements:
       build:
       host:
@@ -494,7 +507,7 @@ outputs:
         - libstdcxx >={{ gcc_version }}
     test:
       requires:
-        - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+        - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
         - gcc_impl_{{ cross_target_platform }}
       commands:
         - test -f ${PREFIX}/lib/libasan.so
@@ -548,6 +561,8 @@ outputs:
       missing_dso_whitelist:
         - "*"
       rpaths_patcher: patchelf
+      overlinking_ignore_patterns:
+        - "lib/libgcc_s.so.*"
     requirements:
       build:
       host:
@@ -612,6 +627,8 @@ outputs:
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      overlinking_ignore_patterns:
+        - "lib/libgfortran.so.*"
     requirements:
       build:
       host:
