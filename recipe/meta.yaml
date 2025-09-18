@@ -23,7 +23,9 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
+  - url:
+      - https://ftp.gnu.org/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
+      - https://mirrors.ocf.berkeley.edu/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
     sha256: 51b9919ea69c980d7a381db95d4be27edf73b21254eb13d752a08003b4d013b1   # [gcc_version == "15.1.0"]
     sha256: ace8b8b0dbfe6abfc22f821cb093e195aa5498b7ccf7cd23e4424b9f14afed22   # [gcc_version == "14.3.0"]
     sha256: bf0baf3e570c9c74c17c8201f0196c6924b4bd98c90e69d6b2ac0cd823f33bbc   # [gcc_version == "13.4.0"]
@@ -60,6 +62,7 @@ source:
 
 build:
   number: {{ build_num }}
+  skip: True  # [win]
   skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
   detect_binary_files_with_prefix: false
   ignore_run_exports_from:
@@ -83,6 +86,8 @@ outputs:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      overlinking_ignore_patterns:
+        - "*/lib/libgcc_s.so.*"
     requirements:
       build:
       host:
@@ -115,6 +120,8 @@ outputs:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      overlinking_ignore_patterns:
+        - "*/lib/libstdc++.so.*"
     requirements:
       build:
       host:
@@ -321,6 +328,7 @@ outputs:
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
+        - strace_{{ cross_target_platform }}
       files:
         - tests
       commands:
@@ -338,7 +346,7 @@ outputs:
         {% if target_platform == cross_target_platform %}
         - ${CXX} tzdb-override.o -o tzdb-override && ./tzdb-override
         - ${CXX} tzdb.o -o tzdb && ./tzdb
-        - strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
+        - $PREFIX/usr/bin/strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
         # also test without any environment activation
         - unset PREFIX
         - unset CONDA_PREFIX
@@ -402,6 +410,7 @@ outputs:
     test:
       requires:
         - cmake >=3.11,<4  # [x86_64 or aarch64 or ppc64le]
+        - make
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       commands:
         {% if cross_target_platform.startswith("linux-") %}
@@ -456,6 +465,8 @@ outputs:
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      overlinking_ignore_patterns:
+        - "lib/libstdc++.so.*"
     requirements:
       build:
       host:
@@ -463,7 +474,7 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
-      run_contrained:
+      run_constrained:
         # avoid installing incompatible version of old name for this output
         - libstdcxx-ng =={{ version }}=*_{{ build_num }}
     test:
@@ -485,6 +496,11 @@ outputs:
         - "*"
       run_exports:
         - libsanitizer {{ gcc_version }}
+      overlinking_ignore_patterns:
+        - "lib/libtsan.so.*"
+        - "lib/libasan.so.*"
+        - "lib/liblsan.so.*"
+        - "lib/libhwasan.so.*"
     requirements:
       build:
       host:
@@ -494,7 +510,7 @@ outputs:
         - libstdcxx >={{ gcc_version }}
     test:
       requires:
-        - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+        - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
         - gcc_impl_{{ cross_target_platform }}
       commands:
         - test -f ${PREFIX}/lib/libasan.so
@@ -548,6 +564,8 @@ outputs:
       missing_dso_whitelist:
         - "*"
       rpaths_patcher: patchelf
+      overlinking_ignore_patterns:
+        - "lib/libgcc_s.so.*"
     requirements:
       build:
       host:
@@ -612,6 +630,8 @@ outputs:
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      overlinking_ignore_patterns:
+        - "lib/libgfortran.so.*"
     requirements:
       build:
       host:
