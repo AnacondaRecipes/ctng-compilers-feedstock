@@ -23,7 +23,9 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://ftp.gnu.org/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
+  - url:
+      - https://ftp.gnu.org/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
+      - https://mirrors.ocf.berkeley.edu/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
     sha256: 51b9919ea69c980d7a381db95d4be27edf73b21254eb13d752a08003b4d013b1   # [gcc_version == "15.1.0"]
     sha256: ace8b8b0dbfe6abfc22f821cb093e195aa5498b7ccf7cd23e4424b9f14afed22   # [gcc_version == "14.3.0"]
     sha256: bf0baf3e570c9c74c17c8201f0196c6924b4bd98c90e69d6b2ac0cd823f33bbc   # [gcc_version == "13.4.0"]
@@ -60,6 +62,7 @@ source:
 
 build:
   number: {{ build_num }}
+  skip: True  # [win]
   skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
   detect_binary_files_with_prefix: false
   ignore_run_exports_from:
@@ -76,6 +79,7 @@ outputs:
   - name: libgcc-devel_{{ cross_target_platform }}
     script: install-libgcc-devel.sh
     build:
+      skip: True
       noarch: generic
       number: {{ libgcc_devel_build_num }}
       detect_binary_files_with_prefix: false
@@ -108,6 +112,7 @@ outputs:
       license: GPL-3.0-only WITH GCC-exception-3.1
 
   - name: libstdcxx-devel_{{ cross_target_platform }}
+    skip: True
     script: install-libstdc++-devel.sh
     build:
       noarch: generic
@@ -145,6 +150,7 @@ outputs:
   - name: gcc_impl_{{ cross_target_platform }}
     script: install-gcc.sh
     build:
+      skip: True
       number: {{ build_num }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -215,6 +221,7 @@ outputs:
   - name: gcc
     script: install-symlinks.sh
     build:
+      skip: True
       skip: true  # [target_platform != cross_target_platform]
       track_features:            # [not with_conda_specs]
         - gcc_no_conda_specs     # [not with_conda_specs]
@@ -236,6 +243,7 @@ outputs:
 
   - name: gcc-no-conda-specs
     build:
+      skip: True
       skip: true   # [with_conda_specs]
     requirements:
       run:
@@ -249,6 +257,7 @@ outputs:
   - name: conda-gcc-specs
     script: install-conda-specs.sh
     build:
+      skip: True
       number: {{ build_num }}
       skip: true                # [cross_target_platform != target_platform]
       detect_binary_files_with_prefix: false
@@ -298,6 +307,7 @@ outputs:
   - name: gxx_impl_{{ cross_target_platform }}
     script: install-g++.sh
     build:
+      skip: True
       number: {{ build_num }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -358,6 +368,7 @@ outputs:
   - name: gxx
     script: install-symlinks.sh
     build:
+      skip: True
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
@@ -379,6 +390,7 @@ outputs:
   - name: gfortran_impl_{{ cross_target_platform }}
     script: install-gfortran.sh
     build:
+      skip: True
       number: {{ build_num }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -433,6 +445,7 @@ outputs:
   - name: gfortran
     script: install-symlinks.sh
     build:
+      skip: True
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
@@ -471,7 +484,7 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
-      run_contrained:
+      run_constrained:
         # avoid installing incompatible version of old name for this output
         - libstdcxx-ng =={{ version }}=*_{{ build_num }}
     test:
@@ -486,6 +499,7 @@ outputs:
     target: {{ cross_target_platform }}
     script: install-libsanitizer.sh
     build:
+      skip: True
       number: {{ build_num }}
       skip: true                # [target_platform != cross_target_platform or win]
       detect_binary_files_with_prefix: false
@@ -536,6 +550,7 @@ outputs:
           {% endif %}
     requirements:
       build:
+        - {{ stdlib('c') }}
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run_constrained:
@@ -622,6 +637,7 @@ outputs:
     target: {{ cross_target_platform }}
     script: install-libgfortran.sh
     build:
+      skip: True
       number: {{ build_num }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
@@ -648,6 +664,7 @@ outputs:
   - name: libgfortran
     target: {{ cross_target_platform }}
     build:
+      skip: True
       skip: true   # [target_platform != cross_target_platform]
       number: {{ build_num }}
     requirements:
@@ -670,6 +687,7 @@ outputs:
   - name: libgcc-ng
     target: {{ cross_target_platform }}
     build:
+      skip: True
       number: {{ build_num }}
       skip: true    # [target_platform != cross_target_platform]
       run_exports:
@@ -713,6 +731,7 @@ outputs:
   - name: libgfortran-ng
     target: {{ cross_target_platform }}
     build:
+      skip: True
       number: {{ build_num }}
       skip: true   # [target_platform != cross_target_platform]
       run_exports:

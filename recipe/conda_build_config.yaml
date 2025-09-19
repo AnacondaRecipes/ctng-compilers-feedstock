@@ -4,17 +4,11 @@ triplet:
   - aarch64-conda-linux-gnu     # [linux and aarch64]
   - x86_64-w64-mingw32          # [win]
 gcc_version:
-  - 15.1.0                      # [ANACONDA_ROCKET_ENABLE_GCC15]
-  - 14.3.0                      # [ANACONDA_ROCKET_ENABLE_GCC14]
-  - 13.4.0                      # [ANACONDA_ROCKET_ENABLE_GCC13]
+  - 14.3.0
 gcc_maj_ver:
-  - 15                          # [ANACONDA_ROCKET_ENABLE_GCC15]
-  - 14                          # [ANACONDA_ROCKET_ENABLE_GCC14]
-  - 13                          # [ANACONDA_ROCKET_ENABLE_GCC13]
+  - 14
 libgfortran_soname:
-  - 5                           # [ANACONDA_ROCKET_ENABLE_GCC15]
-  - 5                           # [ANACONDA_ROCKET_ENABLE_GCC14]
-  - 5                           # [ANACONDA_ROCKET_ENABLE_GCC13]
+  - 5
 binutils_version:
   - 2.40
 cross_target_platform:
@@ -47,11 +41,3 @@ c_stdlib_version:  # [win]
 with_conda_specs:
   - true
   - false
-zip_keys:
-  - - cross_target_stdlib_version
-    - cross_target_stdlib
-    - triplet
-    - cross_target_platform
-  - - gcc_version
-    - gcc_maj_ver
-    - libgfortran_soname
