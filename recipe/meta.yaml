@@ -62,7 +62,6 @@ source:
 
 build:
   number: {{ build_num }}
-  skip: True  # [win]
   skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
   detect_binary_files_with_prefix: false
   ignore_run_exports_from:
@@ -79,7 +78,6 @@ outputs:
   - name: libgcc-devel_{{ cross_target_platform }}
     script: install-libgcc-devel.sh
     build:
-      skip: True
       noarch: generic
       number: {{ libgcc_devel_build_num }}
       detect_binary_files_with_prefix: false
@@ -112,7 +110,6 @@ outputs:
       license: GPL-3.0-only WITH GCC-exception-3.1
 
   - name: libstdcxx-devel_{{ cross_target_platform }}
-    skip: True
     script: install-libstdc++-devel.sh
     build:
       noarch: generic
@@ -150,7 +147,6 @@ outputs:
   - name: gcc_impl_{{ cross_target_platform }}
     script: install-gcc.sh
     build:
-      skip: True
       number: {{ build_num }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -221,7 +217,6 @@ outputs:
   - name: gcc
     script: install-symlinks.sh
     build:
-      skip: True
       skip: true  # [target_platform != cross_target_platform]
       track_features:            # [not with_conda_specs]
         - gcc_no_conda_specs     # [not with_conda_specs]
@@ -243,7 +238,6 @@ outputs:
 
   - name: gcc-no-conda-specs
     build:
-      skip: True
       skip: true   # [with_conda_specs]
     requirements:
       run:
@@ -257,7 +251,6 @@ outputs:
   - name: conda-gcc-specs
     script: install-conda-specs.sh
     build:
-      skip: True
       number: {{ build_num }}
       skip: true                # [cross_target_platform != target_platform]
       detect_binary_files_with_prefix: false
@@ -307,7 +300,6 @@ outputs:
   - name: gxx_impl_{{ cross_target_platform }}
     script: install-g++.sh
     build:
-      skip: True
       number: {{ build_num }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -368,7 +360,6 @@ outputs:
   - name: gxx
     script: install-symlinks.sh
     build:
-      skip: True
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
@@ -390,7 +381,6 @@ outputs:
   - name: gfortran_impl_{{ cross_target_platform }}
     script: install-gfortran.sh
     build:
-      skip: True
       number: {{ build_num }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -445,7 +435,6 @@ outputs:
   - name: gfortran
     script: install-symlinks.sh
     build:
-      skip: True
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
@@ -499,7 +488,6 @@ outputs:
     target: {{ cross_target_platform }}
     script: install-libsanitizer.sh
     build:
-      skip: True
       number: {{ build_num }}
       skip: true                # [target_platform != cross_target_platform or win]
       detect_binary_files_with_prefix: false
@@ -637,7 +625,6 @@ outputs:
     target: {{ cross_target_platform }}
     script: install-libgfortran.sh
     build:
-      skip: True
       number: {{ build_num }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
@@ -664,7 +651,6 @@ outputs:
   - name: libgfortran
     target: {{ cross_target_platform }}
     build:
-      skip: True
       skip: true   # [target_platform != cross_target_platform]
       number: {{ build_num }}
     requirements:
@@ -687,7 +673,6 @@ outputs:
   - name: libgcc-ng
     target: {{ cross_target_platform }}
     build:
-      skip: True
       number: {{ build_num }}
       skip: true    # [target_platform != cross_target_platform]
       run_exports:
@@ -731,7 +716,6 @@ outputs:
   - name: libgfortran-ng
     target: {{ cross_target_platform }}
     build:
-      skip: True
       number: {{ build_num }}
       skip: true   # [target_platform != cross_target_platform]
       run_exports:
