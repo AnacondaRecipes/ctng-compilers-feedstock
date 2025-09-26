@@ -87,6 +87,11 @@ if [[ "$TARGET" == *linux* ]]; then
   GCC_CONFIGURE_OPTIONS+=(--enable-threads=posix)
 fi
 
+# Only skip the 3-stage bootstrap build if this is a libs-only initial build.
+if [[ "${ANACONDA_ROCKET_ENABLE_GCC_LIBS_ONLY}" == "true" ]]; then
+  GCC_CONFIGURE_OPTIONS+=(--disable-bootstrap)
+fi
+
 ../configure \
   --prefix="$PREFIX" \
   --with-slibdir="$PREFIX/lib" \
@@ -107,7 +112,6 @@ fi
   --enable-plugin \
   --enable-gold \
   --disable-nls \
-  --disable-bootstrap \
   --disable-multilib \
   --enable-long-long \
   --with-sysroot=${SYSROOT_DIR} \

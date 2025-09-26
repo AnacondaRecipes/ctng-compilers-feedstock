@@ -1,2 +1,3 @@
 channels:
-   - https://staging.continuum.io/pbp/fs/binutils-feedstock/pr5/b35116f
+  - https://staging.continuum.io/pbp/fs/ctng-compilers-feedstock/pr1/8e9bde5
+  - https://staging.continuum.io/pbp/fs/binutils-feedstock/pr5/b35116f
