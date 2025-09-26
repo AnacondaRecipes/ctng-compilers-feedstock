@@ -112,9 +112,9 @@ outputs:
       license: GPL-3.0-only WITH GCC-exception-3.1
 
   - name: libstdcxx-devel_{{ cross_target_platform }}
-    skip: True  # [ANACONDA_ROCKET_ENABLE_GCC_LIBS_ONLY]
     script: install-libstdc++-devel.sh
     build:
+      skip: True  # [ANACONDA_ROCKET_ENABLE_GCC_LIBS_ONLY]
       noarch: generic
       number: {{ libgcc_devel_build_num }}
       detect_binary_files_with_prefix: false
