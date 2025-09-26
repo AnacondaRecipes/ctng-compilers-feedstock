@@ -548,6 +548,12 @@ outputs:
           {% if cross_target_platform.startswith("win-") %}
           - {{ pin_subpackage("libgomp", max_pin=None) }}
           {% endif %}
+      # Prevent keys that show up in graphs generated with all feedstock outputs from impacting the hash of this package.
+      force_ignore_keys:
+        - ANACONDA_ROCKET_ENABLE_GCC_LIBS_ONLY
+        - libgfortran_soname
+        - binutils_version
+        - with_conda_specs
     requirements:
       build:
         - {{ stdlib('c') }}
