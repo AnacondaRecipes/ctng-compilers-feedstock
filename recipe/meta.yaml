@@ -538,7 +538,7 @@ outputs:
     script: install-libgomp.sh
     build:
       string: hab0c4da_4  # [linux and x86_64]
-      string: hab0c4da_4  # [linux and aarch64]
+      string: h95952f5_4  # [linux and aarch64]
       number: {{ build_num }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
