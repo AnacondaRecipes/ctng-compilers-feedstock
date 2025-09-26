@@ -537,6 +537,8 @@ outputs:
     target: {{ cross_target_platform }}
     script: install-libgomp.sh
     build:
+      string: hab0c4da_4  # [linux and x86_64]
+      string: hab0c4da_4  # [linux and aarch64]
       number: {{ build_num }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
@@ -548,12 +550,6 @@ outputs:
           {% if cross_target_platform.startswith("win-") %}
           - {{ pin_subpackage("libgomp", max_pin=None) }}
           {% endif %}
-      # Prevent keys that show up in graphs generated with all feedstock outputs from impacting the hash of this package.
-      force_ignore_keys:
-        - ANACONDA_ROCKET_ENABLE_GCC_LIBS_ONLY
-        - libgfortran_soname
-        - binutils_version
-        - with_conda_specs
     requirements:
       build:
         - {{ stdlib('c') }}
