@@ -548,6 +548,9 @@ outputs:
           {% if cross_target_platform.startswith("win-") %}
           - {{ pin_subpackage("libgomp", max_pin=None) }}
           {% endif %}
+      # PBP variable that gets injected into the build hash.
+      force_use_keys:
+        - platform
     requirements:
       build:
         - {{ stdlib('c') }}
