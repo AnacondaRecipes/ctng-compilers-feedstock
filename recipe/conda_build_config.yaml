@@ -18,7 +18,7 @@ libgfortran_soname:
   - 5                           # [not ANACONDA_ROCKET_ENABLE_GCC13 and not ANACONDA_ROCKET_ENABLE_GCC15]
   - 5                           # [ANACONDA_ROCKET_ENABLE_GCC13]
 binutils_version:
-  - 2.40
+  - 2.44
 cross_target_platform:
   - linux-64      # [linux and x86_64]
   - linux-ppc64le # [ppc64le]
