@@ -667,6 +667,27 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
+  - name: gdb-pretty-printer
+    version: {{ gcc_version }}
+    script: install-gdb-pretty-printer.sh
+    build:
+      # skip until gdb 16.3 is on defaults (which is built against GCC 14.3.0)
+      skip: true
+      number: {{ build_num }}
+      ignore_run_exports:   # [linux]
+        - libstdcxx         # [linux]
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - gdb >= 16.3
+        - libstdcxx >={{ gcc_version }}
+    about:
+      summary: GNU Compiler Collection Python Pretty Printers
+      home: https://gcc.gnu.org/
+      license: GPL-3.0-only WITH GCC-exception-3.1
+
   # compatibility outputs for previous naming of the runtime libraries
   # with "-ng" suffix; for windows the suffix had never been introduced
   {% if not cross_target_platform.startswith("win-") %}
