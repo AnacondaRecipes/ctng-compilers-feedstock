@@ -94,7 +94,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       run:
         - __unix   # [unix]
-        - m2-conda-epoch    # [win]
+        - __win    # [win]
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
@@ -128,7 +128,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       run:
         - __unix   # [unix]
-        - m2-conda-epoch    # [win]
+        - __win    # [win]
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
