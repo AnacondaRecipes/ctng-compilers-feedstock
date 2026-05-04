@@ -1,5 +1,5 @@
 {% set version = gcc_version %}
-{% set build_num = 7 %}
+{% set build_num = 8 %}
 
 {% if gcc_maj_ver is not defined %}
 {% set gcc_maj_ver = 15 %}
@@ -533,7 +533,7 @@ outputs:
         - "*"
       run_exports:
         strong:
-          - {{ pin_subpackage("_openmp_mutex", max_pin=None) }}
+          - _openmp_mutex >=5.0 *_gnu
           {% if cross_target_platform.startswith("win-") %}
           - {{ pin_subpackage("libgomp", max_pin=None) }}
           {% endif %}
@@ -570,10 +570,10 @@ outputs:
       build:
       host:
         - {{ pin_subpackage("libgomp", exact=True) }}
-        - {{ pin_subpackage('_openmp_mutex', exact=True) }}
+        - _openmp_mutex >=5.0 *_gnu
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run:
-        - {{ pin_subpackage("_openmp_mutex", max_pin=None) }}
+        - _openmp_mutex >=5.0 *_gnu
       run_constrained:
         - {{ pin_subpackage("libgomp", exact=True) }}
         - msys2-conda-epoch <0.0a0    # [win]
@@ -590,36 +590,6 @@ outputs:
       summary: The GCC low-level runtime library
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
       license: GPL-3.0-only WITH GCC-exception-3.1
-
-  - name: _openmp_mutex
-    script: install-openmp_impl.sh
-    version: {{ openmp_ver }}
-    build:
-      string: 3_gnu
-      skip: true    # [target_platform != cross_target_platform]
-      run_exports:
-        strong:
-          - {{ pin_subpackage("_openmp_mutex", max_pin=None) }}
-    requirements:
-      build:
-      host:
-        - {{ pin_subpackage('libgomp', exact=True) }}
-        - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
-      run:
-        - libgomp >=7.5.0
-      run_constrained:
-        # conflict with previous name
-        - openmp_impl <0.0a0
-        - msys2-conda-epoch <0.0a0    # [win]
-    test:
-      commands:
-        - test -f ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
-        - test `readlink ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}` == "libgomp.so.{{ libgomp_ver }}"
-    about:
-      summary: OpenMP Implementation Mutex
-      license: BSD-3-Clause
-      license_file: LICENSE
-      home: https://github.com/conda-forge/ctng-compilers-feedstock
 
   - name: libgfortran{{ libgfortran_soname }}
     target: {{ cross_target_platform }}
