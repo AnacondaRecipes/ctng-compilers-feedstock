@@ -570,7 +570,6 @@ outputs:
       build:
       host:
         - {{ pin_subpackage("libgomp", exact=True) }}
-        - _openmp_mutex >=5.0 *_gnu
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run:
         - _openmp_mutex >=5.0 *_gnu
