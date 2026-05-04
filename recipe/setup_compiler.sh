@@ -1,6 +1,7 @@
 #!/bin/bash
 if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
     extra_pkgs=()
+    conda_channels=(--override-channels -c build -c defaults)
     if [[ "$build_platform" != "$target_platform" ]]; then
       # we need a compiler to target cross_target_platform.
       # when build_platform == target_platform, the compiler
@@ -15,7 +16,7 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
       )
     fi
     # Remove conda-forge/label/sysroot-with-crypt when GCC < 14 is dropped
-    conda create -p $SRC_DIR/cf-compilers --yes --quiet \
+    conda create -p $SRC_DIR/cf-compilers --yes --quiet "${conda_channels[@]}" \
       "binutils_impl_${build_platform}" \
       "gcc_impl_${build_platform}" \
       "gxx_impl_${build_platform}" \
