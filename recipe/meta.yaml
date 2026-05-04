@@ -533,7 +533,7 @@ outputs:
         - "*"
       run_exports:
         strong:
-          - _openmp_mutex >=5.0 *_gnu
+          - _openmp_mutex >=6.0 *_gnu
           {% if cross_target_platform.startswith("win-") %}
           - {{ pin_subpackage("libgomp", max_pin=None) }}
           {% endif %}
@@ -572,7 +572,7 @@ outputs:
         - {{ pin_subpackage("libgomp", exact=True) }}
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run:
-        - _openmp_mutex >=5.0 *_gnu
+        - _openmp_mutex >=6.0 *_gnu
       run_constrained:
         - {{ pin_subpackage("libgomp", exact=True) }}
         - msys2-conda-epoch <0.0a0    # [win]
