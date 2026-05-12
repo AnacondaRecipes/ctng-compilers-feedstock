@@ -548,7 +548,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       commands:
         - test -f ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
-        - test -f ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
+        - test -L ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
         - test `readlink ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}` == "libgomp.so.{{ libgomp_ver }}"
     about:
       summary: The GCC OpenMP implementation.
