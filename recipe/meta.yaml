@@ -584,8 +584,9 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       commands:
         - test -f ${PREFIX}/lib/libgcc_s.so
-        - test ! -f ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
-        - test ! -f ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
+        # libgcc should not ship the libgomp, which has its own output.
+        - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
+        - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
     about:
       summary: The GCC low-level runtime library
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
