@@ -1,7 +1,7 @@
 #!/bin/bash
 if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
     extra_pkgs=()
-    conda_channels=(--override-channels -c https://staging.continuum.io/pbp/fs/_openmp_mutex-feedstock/pr2/6bb2abb -c https://staging.continuum.io/pbp/openmp-mutex-rework-2 -c defaults)
+    conda_channels=(--override-channels -c https://staging.continuum.io/pbp/fs/_openmp_mutex-feedstock/pr2/6bb2abb -c https://staging.continuum.io/pbp/openmp-mutex-rework-3 -c defaults)
     if [[ "$build_platform" != "$target_platform" ]]; then
       # we need a compiler to target cross_target_platform.
       # when build_platform == target_platform, the compiler
