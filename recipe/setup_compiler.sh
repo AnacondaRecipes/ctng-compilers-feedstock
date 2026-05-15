@@ -15,6 +15,7 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
         "gfortran_impl_${cross_target_platform}=${gcc_version}"
       )
     fi
+    conda config --set plugins.use_sharded_repodata false
     # Remove conda-forge/label/sysroot-with-crypt when GCC < 14 is dropped
     conda create -p $SRC_DIR/cf-compilers --yes --quiet "${conda_channels[@]}" \
       "binutils_impl_${build_platform}" \
