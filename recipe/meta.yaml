@@ -32,6 +32,10 @@ source:
     patches:
       - patches/0001-allow-commands-in-main-specfile.patch
       - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13]
+      # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/branch/c10s/gcc15-libstdc++-compat.patch
+      - patches/gcc15-libstdc++-compat.patch  # [gcc_maj_ver == 15]
+      # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/branch/c10s/gcc15-libgfortran-compat.patch
+      - patches/gcc15-libgfortran-compat.patch  # [gcc_maj_ver == 15]
       {% if cross_target_platform.startswith("linux-") %}
       - patches/0003-add-ldl-to-libstdc___la_LDFLAGS.patch                          # [gcc_maj_ver != 13]
       - patches/0004-Hardcode-HAVE_ALIGNED_ALLOC-1-in-libstdc-v3-configur.patch
@@ -479,6 +483,8 @@ outputs:
         - libstdcxx-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
+        # Tests for nonshared library: https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1209
+        # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1997
         - test -f ${PREFIX}/lib/libstdc++.so
     about:
       summary: The GNU C++ Runtime Library
