@@ -1,0 +1,1970 @@
+--- libgfortran/ieee/nonshared-ieee_arithmetic.c.jj	2025-05-09 08:18:56.882135149 +0200
++++ libgfortran/ieee/nonshared-ieee_arithmetic.c	2025-05-09 08:18:56.882135149 +0200
+@@ -0,0 +1,64 @@
++/* Helper functions in C for IEEE modules
++   Copyright (C) 2013-2025 Free Software Foundation, Inc.
++   Contributed by Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public
++License as published by the Free Software Foundation; either
++version 3 of the License, or (at your option) any later version.
++
++Libgfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++#include "libgfortran.h"
++
++GFC_LOGICAL_4
++__ieee_arithmetic_MOD_ieee_support_subnormal_4 (gfc_array_r4 *arg)
++{
++  (void) arg;
++  return 1;
++}
++
++GFC_LOGICAL_4
++__ieee_arithmetic_MOD_ieee_support_subnormal_8 (gfc_array_r8 *arg)
++{
++  (void) arg;
++  return 1;
++}
++
++#ifdef HAVE_GFC_REAL_10
++GFC_LOGICAL_4
++__ieee_arithmetic_MOD_ieee_support_subnormal_10 (gfc_array_r10 *arg)
++{
++  (void) arg;
++  return 1;
++}
++#endif
++
++#ifdef HAVE_GFC_REAL_16
++GFC_LOGICAL_4
++__ieee_arithmetic_MOD_ieee_support_subnormal_16 (gfc_array_r16 *arg)
++{
++  (void) arg;
++  return 1;
++}
++#endif
++
++GFC_LOGICAL_4
++__ieee_arithmetic_MOD_ieee_support_subnormal_noarg (void)
++{
++  return 1;
++}
+--- libgfortran/ieee/nonshared-ieee_exceptions.c.jj	2025-05-09 08:18:56.882135149 +0200
++++ libgfortran/ieee/nonshared-ieee_exceptions.c	2025-05-09 08:18:56.881135162 +0200
+@@ -0,0 +1,50 @@
++/* Helper functions in C for IEEE modules
++   Copyright (C) 2013-2025 Free Software Foundation, Inc.
++   Contributed by Francois-Xavier Coudert <fxcoudert@gcc.gnu.org>
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public
++License as published by the Free Software Foundation; either
++version 3 of the License, or (at your option) any later version.
++
++Libgfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++#include "libgfortran.h"
++
++#define options ((const options_t) {})
++
++#include "fpu-target.h"
++
++struct ieee_modes_type {
++  GFC_INTEGER_4 rounding, underflow, halting;
++};
++
++void
++__ieee_exceptions_MOD_ieee_get_modes (struct ieee_modes_type *modes)
++{
++  modes->rounding = get_fpu_rounding_mode ();
++  modes->underflow = get_fpu_underflow_mode ();
++  modes->halting = get_fpu_trap_exceptions ();
++}
++
++void
++__ieee_exceptions_MOD_ieee_set_modes (struct ieee_modes_type *modes)
++{
++  set_fpu_rounding_mode (modes->rounding);
++  set_fpu_underflow_mode (modes->underflow);
++  set_fpu_trap_exceptions (modes->halting, ~modes->halting);
++}
+--- libgfortran/libgfortran.h.jj	2025-05-07 19:09:53.796357782 +0200
++++ libgfortran/libgfortran.h	2025-05-09 08:18:56.895134969 +0200
+@@ -216,7 +216,7 @@ extern int __mingw_snprintf (char *, siz
+ # define internal_proto(x)	sym_rename(x, IPREFIX(x))
+ #endif
+ 
+-#if defined(HAVE_ATTRIBUTE_VISIBILITY) && defined(HAVE_ATTRIBUTE_ALIAS)
++#if defined(HAVE_ATTRIBUTE_VISIBILITY) && defined(HAVE_ATTRIBUTE_ALIAS) && !defined(LIBGFORTRAN_NONSHARED)
+ # define export_proto(x)	sym_rename(x, PREFIX(x))
+ # define export_proto_np(x)	extern char swallow_semicolon
+ # define iexport_proto(x)	internal_proto(x)
+@@ -291,6 +291,10 @@ typedef GFC_UINTEGER_4 gfc_char4_t;
+    simply equal to the kind parameter itself.  */
+ #define GFC_SIZE_OF_CHAR_KIND(kind) (kind)
+ 
++#ifdef LIBGFORTRAN_NONSHARED
++#define big_endian (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
++#endif
++
+ #define GFOR_POINTER_TO_L1(p, kind) \
+   ((__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ ? 1: 0) * (kind - 1) + (GFC_LOGICAL_1 *)(p))
+ 
+@@ -2061,4 +2065,63 @@ extern int __snprintfieee128 (char *, si
+ 
+ #endif
+ 
++#ifdef LIBGFORTRAN_NONSHARED
++#include <stdlib.h>
++#include <string.h>              
++#include <errno.h>
++
++#define internal_malloc_size nonshared_internal_malloc_size
++#define xmalloc nonshared_internal_xmalloc
++#define xmallocarray nonshared_internal_xmallocarray
++#define reshape_packed nonshared_reshape_packed
++static inline __attribute__((__always_inline__, __unused__))
++void *
++internal_malloc_size (size_t size)
++{
++  void *p;
++
++  if (size == 0)
++    return NULL;
++
++  p = (void *) malloc (size);
++  if (p == NULL)
++    os_error ("Memory allocation failed");
++  return p;
++}
++
++static inline __attribute__((__always_inline__, __unused__))
++void *
++xmalloc (size_t size)
++{
++  return internal_malloc_size (size ? size : 1);
++}
++
++static inline __attribute__((__always_inline__, __unused__))
++void *
++xmallocarray (size_t nmemb, size_t size)
++{
++  if (!nmemb || !size)
++    size = nmemb = 1;
++  else if (__builtin_expect ((nmemb | size)
++			     >= (((size_t) 1) << (__CHAR_BIT__
++						  * sizeof (size_t) / 2)), 0)
++	   && nmemb > __SIZE_MAX__ / size)
++    {
++      errno = ENOMEM;
++      os_error ("Integer overflow in xmallocarray");
++    }
++
++  return internal_malloc_size (nmemb * size);
++}
++
++static inline __attribute__((__always_inline__, __unused__))
++#include "intrinsics/reshape_packed.c"
++
++struct no_bounds_check { int bounds_check; };
++#define compile_options ((struct no_bounds_check) { .bounds_check = 0 })
++
++#define internal_error(x, y...) runtime_error (y)
++
++#endif
++
+ #endif  /* LIBGFOR_H  */
+--- libgfortran/caf/single.c.jj	2025-04-17 12:55:00.124652698 +0200
++++ libgfortran/caf/single.c	2025-05-09 11:58:54.362883951 +0200
+@@ -296,46 +296,29 @@ _gfortran_caf_sync_images (int count __a
+ }
+ 
+ extern void _gfortran_report_exception (void);
++extern _Noreturn void _gfortran_stop_numeric (int, bool);
++extern _Noreturn void _gfortran_stop_string (const char *, size_t, bool);
++extern _Noreturn void _gfortran_error_stop_string (const char *, size_t, bool);
++extern _Noreturn void _gfortran_error_stop_numeric (int, bool);
+ 
+ void
+ _gfortran_caf_stop_numeric(int stop_code, bool quiet)
+ {
+-  if (!quiet)
+-    {
+-      _gfortran_report_exception ();
+-      fprintf (stderr, "STOP %d\n", stop_code);
+-    }
+-  exit (stop_code);
++  _gfortran_stop_numeric (stop_code, quiet);
+ }
+ 
+ 
+ void
+ _gfortran_caf_stop_str(const char *string, size_t len, bool quiet)
+ {
+-  if (!quiet)
+-    {
+-      _gfortran_report_exception ();
+-      fputs ("STOP ", stderr);
+-      while (len--)
+-	fputc (*(string++), stderr);
+-      fputs ("\n", stderr);
+-    }
+-  exit (0);
++  _gfortran_stop_string (string, len, quiet);
+ }
+ 
+ 
+ void
+ _gfortran_caf_error_stop_str (const char *string, size_t len, bool quiet)
+ {
+-  if (!quiet)
+-    {
+-      _gfortran_report_exception ();
+-      fputs ("ERROR STOP ", stderr);
+-      while (len--)
+-	fputc (*(string++), stderr);
+-      fputs ("\n", stderr);
+-    }
+-  exit (1);
++  _gfortran_error_stop_string (string, len, quiet);
+ }
+ 
+ 
+@@ -410,12 +393,7 @@ _gfortran_caf_stopped_images (gfc_descri
+ void
+ _gfortran_caf_error_stop (int error, bool quiet)
+ {
+-  if (!quiet)
+-    {
+-      _gfortran_report_exception ();
+-      fprintf (stderr, "ERROR STOP %d\n", error);
+-    }
+-  exit (error);
++  _gfortran_error_stop_numeric (error, quiet);
+ }
+ 
+ 
+--- libgfortran/runtime/nonshared-stop.c.jj	2025-05-09 12:02:05.154260405 +0200
++++ libgfortran/runtime/nonshared-stop.c	2025-05-09 12:01:50.833457328 +0200
+@@ -0,0 +1,50 @@
++/* Implementation of the STOP statement.
++   Copyright (C) 2002-2025 Free Software Foundation, Inc.
++   Contributed by Paul Brook <paul@nowt.org>
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public
++License as published by the Free Software Foundation; either
++version 3 of the License, or (at your option) any later version.
++
++Libgfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++#include "libgfortran.h"
++
++#ifdef HAVE_UNISTD_H
++#include <unistd.h>
++#endif
++
++#include <string.h>
++
++/* Fortran 2008 demands: If any exception (14) is signaling on that image, the
++   processor shall issue a warning indicating which exceptions are signaling;
++   this warning shall be on the unit identified by the named constant
++   ERROR_UNIT (13.8.2.8).  In line with other compilers, we do not report
++   inexact - and we optionally ignore underflow, cf. thread starting at
++   http://mailman.j3-fortran.org/pipermail/j3/2013-June/006452.html.  */
++
++extern void report_exception (void);
++iexport_proto (report_exception);
++
++void
++report_exception (void)
++{
++  /* Unfortunately compile_options is not accessible outside of the library,
++     so we can't report anything.  */
++}
++iexport (report_exception);
+--- libgfortran/runtime/nonshared-in_pack_class.c.jj	2025-05-09 10:37:04.228371135 +0200
++++ libgfortran/runtime/nonshared-in_pack_class.c	2025-05-09 11:17:05.500430705 +0200
+@@ -0,0 +1,57 @@
++/* Class specific helper function for repacking arrays.
++   Copyright (C) 2003-2025 Free Software Foundation, Inc.
++   Contributed by Paul Brook <paul@nowt.org>
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public
++License as published by the Free Software Foundation; either
++version 3 of the License, or (at your option) any later version.
++
++Libgfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++#include "libgfortran.h"
++#include <errno.h>
++#include <string.h>
++
++extern _Noreturn void os_error_int (const char *);
++sym_rename(os_error_int, PREFIX(os_error));
++#define os_error os_error_int
++#define xmallocarray xmallocarray_int
++
++static void *
++xmallocarray (size_t nmemb, size_t size)
++{
++  void *p;
++  size_t prod;
++
++  if (!nmemb || !size)
++    prod = 1;
++  else if (__builtin_mul_overflow (nmemb, size, &prod))
++    {
++      errno = ENOMEM;
++      os_error ("Integer overflow in xmallocarray");
++    }
++
++  p = malloc (prod);
++
++  if (!p)
++    os_error ("Memory allocation failed in xmallocarray");
++
++  return p;
++}
++
++#include "in_pack_class.c"
+--- libgfortran/runtime/nonshared-error.c.jj	2025-05-09 08:18:56.905134830 +0200
++++ libgfortran/runtime/nonshared-error.c	2025-05-09 08:18:56.905134830 +0200
+@@ -0,0 +1,56 @@
++/* Copyright (C) 2020-2025 Free Software Foundation, Inc.
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++Libgfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++
++#define LIBGFORTRAN_NONSHARED
++#include "libgfortran.h"
++#include "io.h"
++#include "async.h"
++
++#include <string.h>
++#include <stdio.h>
++
++/* Improved version of os_error with a printf style format string and
++   a locus.  */
++
++void
++os_error_at (const char *where, const char *message, ...)
++{
++  char buf[4096];
++  size_t len = strlen (where);
++  int written;
++  va_list ap;
++
++  if (len >= 2048)
++    os_error ("Unknown error");
++  memcpy (buf, where, len);
++  memcpy (buf + len, ": ", 2);
++  va_start (ap, message);
++  written = vsnprintf (buf + len + 2, 4095 - len - 2, message, ap);
++  va_end (ap);
++  if (written < 0)
++    written = 0;
++  buf[len + 2 + written] = '\0';
++  os_error (buf);
++}
++iexport(os_error_at);
+--- libgfortran/intrinsics/nonshared-random.c.jj	2025-05-09 08:42:22.659619461 +0200
++++ libgfortran/intrinsics/nonshared-random.c	2025-05-09 09:08:58.647469048 +0200
+@@ -0,0 +1,481 @@
++/* Implementation of the RANDOM intrinsics
++   Copyright (C) 2002-2025 Free Software Foundation, Inc.
++   Contributed by Lars Segerlund <seger@linuxmail.org>,
++   Steve Kargl and Janne Blomqvist.
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public
++License as published by the Free Software Foundation; either
++version 3 of the License, or (at your option) any later version.
++
++Ligbfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++#include "libgfortran.h"
++
++extern void random_r8 (GFC_REAL_8 *);
++export_proto(random_r8);
++
++#ifdef HAVE_GFC_REAL_10
++
++extern void random_r10 (GFC_REAL_10 *);
++export_proto(random_r10);
++
++#endif
++
++extern void random_m1 (GFC_UINTEGER_1 *);
++export_proto (random_m1);
++
++extern void random_m2 (GFC_UINTEGER_2 *);
++export_proto (random_m2);
++
++extern void random_m4 (GFC_UINTEGER_4 *);
++export_proto (random_m4);
++
++extern void random_m8 (GFC_UINTEGER_8 *);
++export_proto (random_m8);
++
++#ifdef  HAVE_GFC_UINTEGER_16
++extern void random_m16 (GFC_UINTEGER_16 *);
++export_proto (random_m16);
++
++#endif
++
++extern void arandom_m1 (gfc_array_m1 *);
++export_proto (arandom_m1);
++
++extern void arandom_m2 (gfc_array_m2 *);
++export_proto (arandom_m2);
++
++extern void arandom_m4 (gfc_array_m4 *);
++export_proto (arandom_m4);
++
++extern void arandom_m8 (gfc_array_m8 *);
++export_proto (arandom_m8);
++
++#ifdef HAVE_GFC_UINTEGER_16
++
++extern void arandom_m16 (gfc_array_m16 *);
++export_proto (arandom_m16);
++
++#endif
++
++static uint64_t
++prng_next (void)
++{
++#ifdef HAVE_GFC_REAL_10
++  GFC_REAL_10 r;
++  random_r10 (&r);
++#if GFC_REAL_10_DIGITS != 64
++#errir Unexpected GFC_REAL_10_DIGITS
++#endif
++  r /= GFC_REAL_10_LITERAL(0x1.p-64);
++  return r;
++#else
++  GFC_REAL_8 r;
++  random_r8 (&r);
++#if GFC_REAL_8_DIGITS != 53
++#errir Unexpected GFC_REAL_8_DIGITS
++#endif
++  r /= GFC_REAL_8_LITERAL(0x1.p-64);
++  return r;
++#endif
++}
++
++
++/* Versions for unsigned numbers.  */
++
++/* Returns a random byte.  */
++
++void
++random_m1 (GFC_UINTEGER_1 *x)
++{
++  GFC_UINTEGER_8 r = prng_next ();
++
++  *x = r >> 56;
++}
++
++/* A random 16-bit number.  */
++
++void
++random_m2 (GFC_UINTEGER_2 *x)
++{
++  GFC_UINTEGER_8 r = prng_next ();
++
++  *x = r >> 48;
++}
++
++/* A random 32-bit number.  */
++
++void
++random_m4 (GFC_UINTEGER_4 *x)
++{
++  GFC_UINTEGER_8 r = prng_next ();
++
++  *x = r >> 32;
++}
++
++/* A random 64-bit number.  */
++
++void
++random_m8 (GFC_UINTEGER_8 *x)
++{
++  GFC_UINTEGER_8 r = prng_next ();
++
++#ifndef HAVE_GFC_REAL_10
++  r |= prng_next () >> GFC_REAL_8_DIGITS;
++#endif
++  *x = r;
++}
++
++/* ... and a random 128-bit number, if we have the type.  */
++
++#ifdef HAVE_GFC_UINTEGER_16
++void
++random_m16 (GFC_UINTEGER_16 *x)
++{
++  GFC_UINTEGER_8 r1 = prng_next ();
++  GFC_UINTEGER_8 r2 = prng_next ();
++
++#ifndef HAVE_GFC_REAL_10
++  GFC_UINTEGER_8 r3 = prng_next ();
++  *x = (((GFC_UINTEGER_16) r1) << 64)
++       | (((GFC_UINTEGER_16) r2) << (64 - GFC_REAL_8_DIGITS))
++       | ((GFC_UINTEGER_16) (r3 >> (64 - (64 - GFC_REAL_8_DIGITS) * 2)));
++#else
++  *x = (((GFC_UINTEGER_16) r1) << 64) | (GFC_UINTEGER_16) r2;
++#endif
++}
++#endif
++
++/* Fill an unsigned array with random bytes.  */
++
++void
++arandom_m1 (gfc_array_m1 *x)
++{
++  index_type count[GFC_MAX_DIMENSIONS];
++  index_type extent[GFC_MAX_DIMENSIONS];
++  index_type stride[GFC_MAX_DIMENSIONS];
++  index_type stride0;
++  index_type dim;
++  GFC_UINTEGER_1 *dest;
++
++  dest = x->base_addr;
++
++  dim = GFC_DESCRIPTOR_RANK (x);
++
++  for (index_type n = 0; n < dim; n++)
++    {
++      count[n] = 0;
++      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
++      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
++      if (extent[n] <= 0)
++	return;
++    }
++
++  stride0 = stride[0];
++
++  while (dest)
++    {
++      /* random_m1 (dest);  */
++      uint64_t r = prng_next ();
++      *dest = r >> 56;
++
++      /* Advance to the next element.  */
++      dest += stride0;
++      count[0]++;
++      /* Advance to the next source element.  */
++      index_type n = 0;
++      while (count[n] == extent[n])
++	{
++	  /* When we get to the end of a dimension, reset it and increment
++	     the next dimension.  */
++	  count[n] = 0;
++	  /* We could precalculate these products, but this is a less
++	     frequently used path so probably not worth it.  */
++	  dest -= stride[n] * extent[n];
++	  n++;
++	  if (n == dim)
++	    {
++	      dest = NULL;
++	      break;
++	    }
++	  else
++	    {
++	      count[n]++;
++	      dest += stride[n];
++	    }
++	}
++    }
++}
++
++/* Fill an unsigned array with random 16-bit unsigneds.  */
++
++void
++arandom_m2 (gfc_array_m2 *x)
++{
++  index_type count[GFC_MAX_DIMENSIONS];
++  index_type extent[GFC_MAX_DIMENSIONS];
++  index_type stride[GFC_MAX_DIMENSIONS];
++  index_type stride0;
++  index_type dim;
++  GFC_UINTEGER_2 *dest;
++
++  dest = x->base_addr;
++
++  dim = GFC_DESCRIPTOR_RANK (x);
++
++  for (index_type n = 0; n < dim; n++)
++    {
++      count[n] = 0;
++      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
++      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
++      if (extent[n] <= 0)
++	return;
++    }
++
++  stride0 = stride[0];
++
++  while (dest)
++    {
++      /* random_m1 (dest);  */
++      uint64_t r = prng_next ();
++      *dest = r >> 48;
++
++      /* Advance to the next element.  */
++      dest += stride0;
++      count[0]++;
++      /* Advance to the next source element.  */
++      index_type n = 0;
++      while (count[n] == extent[n])
++	{
++	  /* When we get to the end of a dimension, reset it and increment
++	     the next dimension.  */
++	  count[n] = 0;
++	  /* We could precalculate these products, but this is a less
++	     frequently used path so probably not worth it.  */
++	  dest -= stride[n] * extent[n];
++	  n++;
++	  if (n == dim)
++	    {
++	      dest = NULL;
++	      break;
++	    }
++	  else
++	    {
++	      count[n]++;
++	      dest += stride[n];
++	    }
++	}
++    }
++}
++
++/* Fill an array with random 32-bit unsigneds.  */
++
++void
++arandom_m4 (gfc_array_m4 *x)
++{
++  index_type count[GFC_MAX_DIMENSIONS];
++  index_type extent[GFC_MAX_DIMENSIONS];
++  index_type stride[GFC_MAX_DIMENSIONS];
++  index_type stride0;
++  index_type dim;
++  GFC_UINTEGER_4 *dest;
++
++  dest = x->base_addr;
++
++  dim = GFC_DESCRIPTOR_RANK (x);
++
++  for (index_type n = 0; n < dim; n++)
++    {
++      count[n] = 0;
++      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
++      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
++      if (extent[n] <= 0)
++	return;
++    }
++
++  stride0 = stride[0];
++
++  while (dest)
++    {
++      /* random_m4 (dest);  */
++      uint64_t r = prng_next ();
++      *dest = r >> 32;
++
++      /* Advance to the next element.  */
++      dest += stride0;
++      count[0]++;
++      /* Advance to the next source element.  */
++      index_type n = 0;
++      while (count[n] == extent[n])
++	{
++	  /* When we get to the end of a dimension, reset it and increment
++	     the next dimension.  */
++	  count[n] = 0;
++	  /* We could precalculate these products, but this is a less
++	     frequently used path so probably not worth it.  */
++	  dest -= stride[n] * extent[n];
++	  n++;
++	  if (n == dim)
++	    {
++	      dest = NULL;
++	      break;
++	    }
++	  else
++	    {
++	      count[n]++;
++	      dest += stride[n];
++	    }
++	}
++    }
++}
++
++/* Fill an array with random 64-bit unsigneds.  */
++
++void
++arandom_m8 (gfc_array_m8 *x)
++{
++  index_type count[GFC_MAX_DIMENSIONS];
++  index_type extent[GFC_MAX_DIMENSIONS];
++  index_type stride[GFC_MAX_DIMENSIONS];
++  index_type stride0;
++  index_type dim;
++  GFC_UINTEGER_8 *dest;
++
++  dest = x->base_addr;
++
++  dim = GFC_DESCRIPTOR_RANK (x);
++
++  for (index_type n = 0; n < dim; n++)
++    {
++      count[n] = 0;
++      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
++      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
++      if (extent[n] <= 0)
++	return;
++    }
++
++  stride0 = stride[0];
++
++  while (dest)
++    {
++      /* random_m8 (dest);  */
++      uint64_t r = prng_next ();
++#ifndef HAVE_GFC_REAL_10
++      r |= prng_next () >> GFC_REAL_8_DIGITS;
++#endif
++      *dest = r;
++
++      /* Advance to the next element.  */
++      dest += stride0;
++      count[0]++;
++      /* Advance to the next source element.  */
++      index_type n = 0;
++      while (count[n] == extent[n])
++	{
++	  /* When we get to the end of a dimension, reset it and increment
++	     the next dimension.  */
++	  count[n] = 0;
++	  /* We could precalculate these products, but this is a less
++	     frequently used path so probably not worth it.  */
++	  dest -= stride[n] * extent[n];
++	  n++;
++	  if (n == dim)
++	    {
++	      dest = NULL;
++	      break;
++	    }
++	  else
++	    {
++	      count[n]++;
++	      dest += stride[n];
++	    }
++	}
++    }
++}
++
++#ifdef HAVE_GFC_UINTEGER_16
++
++/* Fill an unsigned array with random bytes.  */
++
++void
++arandom_m16 (gfc_array_m16 *x)
++{
++  index_type count[GFC_MAX_DIMENSIONS];
++  index_type extent[GFC_MAX_DIMENSIONS];
++  index_type stride[GFC_MAX_DIMENSIONS];
++  index_type stride0;
++  index_type dim;
++  GFC_UINTEGER_16 *dest;
++
++  dest = x->base_addr;
++
++  dim = GFC_DESCRIPTOR_RANK (x);
++
++  for (index_type n = 0; n < dim; n++)
++    {
++      count[n] = 0;
++      stride[n] = GFC_DESCRIPTOR_STRIDE(x,n);
++      extent[n] = GFC_DESCRIPTOR_EXTENT(x,n);
++      if (extent[n] <= 0)
++	return;
++    }
++
++  stride0 = stride[0];
++
++  while (dest)
++    {
++      /* random_m16 (dest);  */
++      uint64_t r1 = prng_next (), r2 = prng_next ();
++#ifndef HAVE_GFC_REAL_10
++      uint64_t r3 = prng_next ();
++      *dest = (((GFC_UINTEGER_16) r1) << 64)
++	      | (((GFC_UINTEGER_16) r2) << (64 - GFC_REAL_8_DIGITS))
++	      | ((GFC_UINTEGER_16) (r3 >> (64 - (64 - GFC_REAL_8_DIGITS) * 2)));
++#else
++      *dest = (((GFC_UINTEGER_16) r1) << 64) | (GFC_UINTEGER_16) r2;
++#endif
++
++      /* Advance to the next element.  */
++      dest += stride0;
++      count[0]++;
++      /* Advance to the next source element.  */
++      index_type n = 0;
++      while (count[n] == extent[n])
++	{
++	  /* When we get to the end of a dimension, reset it and increment
++	     the next dimension.  */
++	  count[n] = 0;
++	  /* We could precalculate these products, but this is a less
++	     frequently used path so probably not worth it.  */
++	  dest -= stride[n] * extent[n];
++	  n++;
++	  if (n == dim)
++	    {
++	      dest = NULL;
++	      break;
++	    }
++	  else
++	    {
++	      count[n]++;
++	      dest += stride[n];
++	    }
++	}
++    }
++}
++
++#endif
+--- libgfortran/intrinsics/nonshared-selected_int_kind.f90.jj	2025-05-09 10:46:57.287241956 +0200
++++ libgfortran/intrinsics/nonshared-selected_int_kind.f90	2025-05-09 10:48:35.932894223 +0200
+@@ -0,0 +1,48 @@
++!   Copyright (C) 2003-2025 Free Software Foundation, Inc.
++!   Contributed by Kejia Zhao <kejia_zh@yahoo.com.cn>
++!
++!This file is part of the GNU Fortran 95 runtime library (libgfortran).
++!
++!Libgfortran is free software; you can redistribute it and/or
++!modify it under the terms of the GNU General Public
++!License as published by the Free Software Foundation; either
++!version 3 of the License, or (at your option) any later version.
++!
++!Libgfortran is distributed in the hope that it will be useful,
++!but WITHOUT ANY WARRANTY; without even the implied warranty of
++!MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++!GNU General Public License for more details.
++!
++!Under Section 7 of GPL version 3, you are granted additional
++!permissions described in the GCC Runtime Library Exception, version
++!3.1, as published by the Free Software Foundation.
++!
++!You should have received a copy of the GNU General Public License and
++!a copy of the GCC Runtime Library Exception along with this program;
++!see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++!<http://www.gnu.org/licenses/>.
++
++! At this time, our logical and integer kinds are the same
++
++function _gfortran_selected_logical_kind (bits)
++  implicit none
++  integer, intent(in) :: bits
++  integer :: _gfortran_selected_logical_kind
++  integer :: i
++  ! Integer kind_range table
++  type :: int_info
++    integer :: kind
++    integer :: range
++  end type int_info
++
++  include "selected_int_kind.inc"
++
++  do i = 1, c
++    if (bits <= 8 * int_infos(i)%kind) then
++      _gfortran_selected_logical_kind = int_infos(i)%kind
++      return
++    end if
++  end do
++  _gfortran_selected_logical_kind = -1
++  return
++end function
+--- libgfortran/intrinsics/nonshared-reduce.c.jj	2025-05-09 10:58:04.845121550 +0200
++++ libgfortran/intrinsics/nonshared-reduce.c	2025-05-09 11:02:01.816868737 +0200
+@@ -0,0 +1,35 @@
++/* Generic implementation of the reduce intrinsic
++   Copyright (C) 2002-2025 Free Software Foundation, Inc.
++   Contributed by Paul Thomas <pault@gcc.gnu.org>
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public
++License as published by the Free Software Foundation; either
++version 3 of the License, or (at your option) any later version.
++
++Ligbfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WarrayANTY; without even the implied warrayanty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++#include "libgfortran.h"
++#include <string.h>
++#include <stdio.h>
++
++extern _Noreturn void runtime_error_int (const char *, ...)
++     __attribute__ ((format (gfc_printf, 1, 2)));
++sym_rename(runtime_error_int, PREFIX(runtime_error));
++#define runtime_error runtime_error_int
++
++#include "reduce.c"
+--- libgfortran/Makefile.am.jj	2025-05-08 10:51:58.952842105 +0200
++++ libgfortran/Makefile.am	2025-05-09 12:25:30.990929726 +0200
+@@ -49,6 +49,8 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ 	    $(lt_host_flags)
+ 
+ toolexeclib_LTLIBRARIES = libgfortran.la
++noinst_LTLIBRARIES = libgfortran_nonshared80.la libgfortran_nonshared110.la \
++		     libgfortran_nonshared140.la
+ toolexeclib_DATA = libgfortran.spec
+ libgfortran_la_LINK = $(LINK) $(libgfortran_la_LDFLAGS)
+ libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+@@ -1227,6 +1229,231 @@ BUILT_SOURCES=$(gfor_built_src) $(gfor_b
+ libgfortran_la_SOURCES = $(gfor_src) $(gfor_built_src) $(gfor_io_src) \
+ 	$(gfor_helper_src) $(gfor_ieee_src) $(gfor_io_headers) $(gfor_specific_src)
+ 
++intrinsics/nonshared-selected_int_kind.lo: AM_FCFLAGS += -fallow-leading-underscore -fbuilding-libgfortran
++
++$(patsubst %.c,%.lo,$(nonshared_generated_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/generated/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_generated_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/generated/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_intrinsics_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/intrinsics/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_intrinsics_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/intrinsics/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_runtime_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/runtime/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_runtime_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/runtime/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_ieee_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/ieee/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_ieee_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/ieee/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_io_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/io/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_io_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/io/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.f90,%.lo,$(nonshared_intrinsics_f90_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/intrinsics/%.f90
++	$(LTPPFCCOMPILE) -c -o $@ $< -fallow-leading-underscore
++
++$(patsubst %.f90,%.o,$(nonshared_intrinsics_f90_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/intrinsics/%.f90
++	$(PPFCCOMPILE) -c -o $@ $< -fallow-leading-underscore
++
++nonshared_runtime_C_SRC = \
++nonshared-ISO_Fortran_binding.c \
++nonshared-in_unpack_class.c
++
++nonshared_generated_80_C_SRC = \
++nonshared-findloc0_i1.c \
++nonshared-findloc0_i2.c \
++nonshared-findloc0_i4.c \
++nonshared-findloc0_i8.c \
++nonshared-findloc0_i16.c \
++nonshared-findloc0_r4.c \
++nonshared-findloc0_r8.c \
++nonshared-findloc0_r10.c \
++nonshared-findloc0_r16.c \
++nonshared-findloc0_c4.c \
++nonshared-findloc0_c8.c \
++nonshared-findloc0_c10.c \
++nonshared-findloc0_c16.c \
++nonshared-findloc0_s1.c \
++nonshared-findloc0_s4.c \
++nonshared-findloc1_i1.c \
++nonshared-findloc1_i2.c \
++nonshared-findloc1_i4.c \
++nonshared-findloc1_i8.c \
++nonshared-findloc1_i16.c \
++nonshared-findloc1_r4.c \
++nonshared-findloc1_r8.c \
++nonshared-findloc1_r10.c \
++nonshared-findloc1_r16.c \
++nonshared-findloc1_c4.c \
++nonshared-findloc1_c8.c \
++nonshared-findloc1_c10.c \
++nonshared-findloc1_c16.c \
++nonshared-findloc1_s1.c \
++nonshared-findloc1_s4.c \
++nonshared-findloc2_s1.c \
++nonshared-findloc2_s4.c
++
++nonshared_generated_all_C_SRC = \
++nonshared-maxloc0_4_m1.c \
++nonshared-maxloc0_4_m2.c \
++nonshared-maxloc0_4_m4.c \
++nonshared-maxloc0_4_m8.c \
++nonshared-maxloc0_4_m16.c \
++nonshared-maxloc0_8_m1.c \
++nonshared-maxloc0_8_m2.c \
++nonshared-maxloc0_8_m4.c \
++nonshared-maxloc0_8_m8.c \
++nonshared-maxloc0_8_m16.c \
++nonshared-maxloc0_16_m1.c \
++nonshared-maxloc0_16_m2.c \
++nonshared-maxloc0_16_m4.c \
++nonshared-maxloc0_16_m8.c \
++nonshared-maxloc0_16_m16.c \
++nonshared-maxloc1_4_m1.c \
++nonshared-maxloc1_4_m2.c \
++nonshared-maxloc1_4_m4.c \
++nonshared-maxloc1_4_m8.c \
++nonshared-maxloc1_4_m16.c \
++nonshared-maxloc1_8_m1.c \
++nonshared-maxloc1_8_m2.c \
++nonshared-maxloc1_8_m4.c \
++nonshared-maxloc1_8_m8.c \
++nonshared-maxloc1_8_m16.c \
++nonshared-maxloc1_16_m1.c \
++nonshared-maxloc1_16_m2.c \
++nonshared-maxloc1_16_m4.c \
++nonshared-maxloc1_16_m8.c \
++nonshared-maxloc1_16_m16.c \
++nonshared-maxval_m1.c \
++nonshared-maxval_m2.c \
++nonshared-maxval_m4.c \
++nonshared-maxval_m8.c \
++nonshared-maxval_m16.c \
++nonshared-minloc0_4_m1.c \
++nonshared-minloc0_4_m2.c \
++nonshared-minloc0_4_m4.c \
++nonshared-minloc0_4_m8.c \
++nonshared-minloc0_4_m16.c \
++nonshared-minloc0_8_m1.c \
++nonshared-minloc0_8_m2.c \
++nonshared-minloc0_8_m4.c \
++nonshared-minloc0_8_m8.c \
++nonshared-minloc0_8_m16.c \
++nonshared-minloc0_16_m1.c \
++nonshared-minloc0_16_m2.c \
++nonshared-minloc0_16_m4.c \
++nonshared-minloc0_16_m8.c \
++nonshared-minloc0_16_m16.c \
++nonshared-minloc1_4_m1.c \
++nonshared-minloc1_4_m2.c \
++nonshared-minloc1_4_m4.c \
++nonshared-minloc1_4_m8.c \
++nonshared-minloc1_4_m16.c \
++nonshared-minloc1_8_m1.c \
++nonshared-minloc1_8_m2.c \
++nonshared-minloc1_8_m4.c \
++nonshared-minloc1_8_m8.c \
++nonshared-minloc1_8_m16.c \
++nonshared-minloc1_16_m1.c \
++nonshared-minloc1_16_m2.c \
++nonshared-minloc1_16_m4.c \
++nonshared-minloc1_16_m8.c \
++nonshared-minloc1_16_m16.c \
++nonshared-minval_m1.c \
++nonshared-minval_m2.c \
++nonshared-minval_m4.c \
++nonshared-minval_m8.c \
++nonshared-minval_m16.c \
++nonshared-pow_m1_m1.c \
++nonshared-pow_m1_m2.c \
++nonshared-pow_m1_m4.c \
++nonshared-pow_m1_m8.c \
++nonshared-pow_m1_m16.c \
++nonshared-pow_m2_m1.c \
++nonshared-pow_m2_m2.c \
++nonshared-pow_m2_m4.c \
++nonshared-pow_m2_m8.c \
++nonshared-pow_m2_m16.c \
++nonshared-pow_m4_m1.c \
++nonshared-pow_m4_m2.c \
++nonshared-pow_m4_m4.c \
++nonshared-pow_m4_m8.c \
++nonshared-pow_m4_m16.c \
++nonshared-pow_m8_m1.c \
++nonshared-pow_m8_m2.c \
++nonshared-pow_m8_m4.c \
++nonshared-pow_m8_m8.c \
++nonshared-pow_m8_m16.c \
++nonshared-pow_m16_m1.c \
++nonshared-pow_m16_m2.c \
++nonshared-pow_m16_m4.c \
++nonshared-pow_m16_m8.c \
++nonshared-pow_m16_m16.c
++
++nonshared_generated_C_SRC = \
++$(nonshared_generated_80_C_SRC) \
++$(nonshared_generated_all_C_SRC)
++
++nonshared_intrinsics_C_SRC = \
++nonshared-is_contiguous.c \
++nonshared-trigd.c
++
++nonshared_intrinsics_f90_SRC = \
++nonshared-random_init.f90
++
++common_nonshared_SRCs = \
++intrinsics/nonshared-random.c \
++intrinsics/nonshared-reduce.c \
++intrinsics/nonshared-selected_int_kind.f90 \
++runtime/nonshared-stop.c \
++runtime/nonshared-in_pack_class.c
++
++libgfortran_nonshared80_la_SOURCES = \
++$(nonshared_runtime_C_SRC) \
++$(nonshared_generated_C_SRC) \
++$(nonshared_intrinsics_C_SRC) \
++$(nonshared_intrinsics_f90_SRC) \
++ieee/nonshared-ieee_arithmetic.c \
++ieee/nonshared-ieee_exceptions.c \
++io/nonshared-transfer.c \
++runtime/nonshared-error.c \
++$(common_nonshared_SRCs)
++
++libgfortran_nonshared110_la_SOURCES = \
++$(nonshared_generated_all_C_SRC) \
++ieee/nonshared-ieee_exceptions.c \
++$(common_nonshared_SRCs) \
++nonshared-in_unpack_class.c
++
++libgfortran_nonshared140_la_SOURCES = \
++$(nonshared_generated_all_C_SRC) \
++$(common_nonshared_SRCs) \
++nonshared-in_unpack_class.c
++
+ I_M4_DEPS=m4/iparm.m4 m4/mtype.m4
+ I_M4_DEPS0=$(I_M4_DEPS) m4/iforeach.m4
+ I_M4_DEPS1=$(I_M4_DEPS) m4/ifunction.m4
+--- libgfortran/Makefile.in.jj	2025-05-08 10:51:58.953842091 +0200
++++ libgfortran/Makefile.in	2025-05-09 12:25:49.801672216 +0200
+@@ -216,7 +216,8 @@ am__uninstall_files_from_dir = { \
+ am__installdirs = "$(DESTDIR)$(cafexeclibdir)" \
+ 	"$(DESTDIR)$(toolexeclibdir)" "$(DESTDIR)$(toolexeclibdir)" \
+ 	"$(DESTDIR)$(gfor_cdir)" "$(DESTDIR)$(fincludedir)"
+-LTLIBRARIES = $(cafexeclib_LTLIBRARIES) $(toolexeclib_LTLIBRARIES)
++LTLIBRARIES = $(cafexeclib_LTLIBRARIES) $(noinst_LTLIBRARIES) \
++	$(toolexeclib_LTLIBRARIES)
+ libcaf_single_la_LIBADD =
+ am__dirstamp = $(am__leading_dot)dirstamp
+ am_libcaf_single_la_OBJECTS = caf/single.lo
+@@ -718,6 +719,102 @@ am_libgfortran_la_OBJECTS = $(am__object
+ 	$(am__objects_56) $(am__objects_59) $(am__objects_60) \
+ 	$(am__objects_61) $(am__objects_65)
+ libgfortran_la_OBJECTS = $(am_libgfortran_la_OBJECTS)
++libgfortran_nonshared110_la_LIBADD =
++am__objects_66 = nonshared-maxloc0_4_m1.lo nonshared-maxloc0_4_m2.lo \
++	nonshared-maxloc0_4_m4.lo nonshared-maxloc0_4_m8.lo \
++	nonshared-maxloc0_4_m16.lo nonshared-maxloc0_8_m1.lo \
++	nonshared-maxloc0_8_m2.lo nonshared-maxloc0_8_m4.lo \
++	nonshared-maxloc0_8_m8.lo nonshared-maxloc0_8_m16.lo \
++	nonshared-maxloc0_16_m1.lo nonshared-maxloc0_16_m2.lo \
++	nonshared-maxloc0_16_m4.lo nonshared-maxloc0_16_m8.lo \
++	nonshared-maxloc0_16_m16.lo nonshared-maxloc1_4_m1.lo \
++	nonshared-maxloc1_4_m2.lo nonshared-maxloc1_4_m4.lo \
++	nonshared-maxloc1_4_m8.lo nonshared-maxloc1_4_m16.lo \
++	nonshared-maxloc1_8_m1.lo nonshared-maxloc1_8_m2.lo \
++	nonshared-maxloc1_8_m4.lo nonshared-maxloc1_8_m8.lo \
++	nonshared-maxloc1_8_m16.lo nonshared-maxloc1_16_m1.lo \
++	nonshared-maxloc1_16_m2.lo nonshared-maxloc1_16_m4.lo \
++	nonshared-maxloc1_16_m8.lo nonshared-maxloc1_16_m16.lo \
++	nonshared-maxval_m1.lo nonshared-maxval_m2.lo \
++	nonshared-maxval_m4.lo nonshared-maxval_m8.lo \
++	nonshared-maxval_m16.lo nonshared-minloc0_4_m1.lo \
++	nonshared-minloc0_4_m2.lo nonshared-minloc0_4_m4.lo \
++	nonshared-minloc0_4_m8.lo nonshared-minloc0_4_m16.lo \
++	nonshared-minloc0_8_m1.lo nonshared-minloc0_8_m2.lo \
++	nonshared-minloc0_8_m4.lo nonshared-minloc0_8_m8.lo \
++	nonshared-minloc0_8_m16.lo nonshared-minloc0_16_m1.lo \
++	nonshared-minloc0_16_m2.lo nonshared-minloc0_16_m4.lo \
++	nonshared-minloc0_16_m8.lo nonshared-minloc0_16_m16.lo \
++	nonshared-minloc1_4_m1.lo nonshared-minloc1_4_m2.lo \
++	nonshared-minloc1_4_m4.lo nonshared-minloc1_4_m8.lo \
++	nonshared-minloc1_4_m16.lo nonshared-minloc1_8_m1.lo \
++	nonshared-minloc1_8_m2.lo nonshared-minloc1_8_m4.lo \
++	nonshared-minloc1_8_m8.lo nonshared-minloc1_8_m16.lo \
++	nonshared-minloc1_16_m1.lo nonshared-minloc1_16_m2.lo \
++	nonshared-minloc1_16_m4.lo nonshared-minloc1_16_m8.lo \
++	nonshared-minloc1_16_m16.lo nonshared-minval_m1.lo \
++	nonshared-minval_m2.lo nonshared-minval_m4.lo \
++	nonshared-minval_m8.lo nonshared-minval_m16.lo \
++	nonshared-pow_m1_m1.lo nonshared-pow_m1_m2.lo \
++	nonshared-pow_m1_m4.lo nonshared-pow_m1_m8.lo \
++	nonshared-pow_m1_m16.lo nonshared-pow_m2_m1.lo \
++	nonshared-pow_m2_m2.lo nonshared-pow_m2_m4.lo \
++	nonshared-pow_m2_m8.lo nonshared-pow_m2_m16.lo \
++	nonshared-pow_m4_m1.lo nonshared-pow_m4_m2.lo \
++	nonshared-pow_m4_m4.lo nonshared-pow_m4_m8.lo \
++	nonshared-pow_m4_m16.lo nonshared-pow_m8_m1.lo \
++	nonshared-pow_m8_m2.lo nonshared-pow_m8_m4.lo \
++	nonshared-pow_m8_m8.lo nonshared-pow_m8_m16.lo \
++	nonshared-pow_m16_m1.lo nonshared-pow_m16_m2.lo \
++	nonshared-pow_m16_m4.lo nonshared-pow_m16_m8.lo \
++	nonshared-pow_m16_m16.lo
++am__objects_67 = intrinsics/nonshared-random.lo \
++	intrinsics/nonshared-reduce.lo \
++	intrinsics/nonshared-selected_int_kind.lo \
++	runtime/nonshared-stop.lo runtime/nonshared-in_pack_class.lo
++am_libgfortran_nonshared110_la_OBJECTS = $(am__objects_66) \
++	ieee/nonshared-ieee_exceptions.lo $(am__objects_67) \
++	nonshared-in_unpack_class.lo
++libgfortran_nonshared110_la_OBJECTS =  \
++	$(am_libgfortran_nonshared110_la_OBJECTS)
++AM_V_lt = $(am__v_lt_@AM_V@)
++am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
++am__v_lt_0 = --silent
++am__v_lt_1 = 
++libgfortran_nonshared140_la_LIBADD =
++am_libgfortran_nonshared140_la_OBJECTS = $(am__objects_66) \
++	$(am__objects_67) nonshared-in_unpack_class.lo
++libgfortran_nonshared140_la_OBJECTS =  \
++	$(am_libgfortran_nonshared140_la_OBJECTS)
++libgfortran_nonshared80_la_LIBADD =
++am__objects_68 = nonshared-ISO_Fortran_binding.lo \
++	nonshared-in_unpack_class.lo
++am__objects_69 = nonshared-findloc0_i1.lo nonshared-findloc0_i2.lo \
++	nonshared-findloc0_i4.lo nonshared-findloc0_i8.lo \
++	nonshared-findloc0_i16.lo nonshared-findloc0_r4.lo \
++	nonshared-findloc0_r8.lo nonshared-findloc0_r10.lo \
++	nonshared-findloc0_r16.lo nonshared-findloc0_c4.lo \
++	nonshared-findloc0_c8.lo nonshared-findloc0_c10.lo \
++	nonshared-findloc0_c16.lo nonshared-findloc0_s1.lo \
++	nonshared-findloc0_s4.lo nonshared-findloc1_i1.lo \
++	nonshared-findloc1_i2.lo nonshared-findloc1_i4.lo \
++	nonshared-findloc1_i8.lo nonshared-findloc1_i16.lo \
++	nonshared-findloc1_r4.lo nonshared-findloc1_r8.lo \
++	nonshared-findloc1_r10.lo nonshared-findloc1_r16.lo \
++	nonshared-findloc1_c4.lo nonshared-findloc1_c8.lo \
++	nonshared-findloc1_c10.lo nonshared-findloc1_c16.lo \
++	nonshared-findloc1_s1.lo nonshared-findloc1_s4.lo \
++	nonshared-findloc2_s1.lo nonshared-findloc2_s4.lo
++am__objects_70 = $(am__objects_69) $(am__objects_66)
++am__objects_71 = nonshared-is_contiguous.lo nonshared-trigd.lo
++am__objects_72 = nonshared-random_init.lo
++am_libgfortran_nonshared80_la_OBJECTS = $(am__objects_68) \
++	$(am__objects_70) $(am__objects_71) $(am__objects_72) \
++	ieee/nonshared-ieee_arithmetic.lo \
++	ieee/nonshared-ieee_exceptions.lo io/nonshared-transfer.lo \
++	runtime/nonshared-error.lo $(am__objects_67)
++libgfortran_nonshared80_la_OBJECTS =  \
++	$(am_libgfortran_nonshared80_la_OBJECTS)
+ AM_V_P = $(am__v_P_@AM_V@)
+ am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
+ am__v_P_0 = false
+@@ -736,10 +833,6 @@ am__depfiles_maybe = depfiles
+ am__mv = mv -f
+ PPFCCOMPILE = $(FC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+ 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
+-AM_V_lt = $(am__v_lt_@AM_V@)
+-am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+-am__v_lt_0 = --silent
+-am__v_lt_1 = 
+ LTPPFCCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=FC $(AM_LIBTOOLFLAGS) \
+ 	$(LIBTOOLFLAGS) --mode=compile $(FC) $(DEFS) \
+ 	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+@@ -781,7 +874,10 @@ AM_V_FC = $(am__v_FC_@AM_V@)
+ am__v_FC_ = $(am__v_FC_@AM_DEFAULT_V@)
+ am__v_FC_0 = @echo "  FC      " $@;
+ am__v_FC_1 = 
+-SOURCES = $(libcaf_single_la_SOURCES) $(libgfortran_la_SOURCES)
++SOURCES = $(libcaf_single_la_SOURCES) $(libgfortran_la_SOURCES) \
++	$(libgfortran_nonshared110_la_SOURCES) \
++	$(libgfortran_nonshared140_la_SOURCES) \
++	$(libgfortran_nonshared80_la_SOURCES)
+ am__can_run_installinfo = \
+   case $$AM_UPDATE_INFO_DIR in \
+     n|no|NO) false;; \
+@@ -988,6 +1084,9 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ 	    $(lt_host_flags)
+ 
+ toolexeclib_LTLIBRARIES = libgfortran.la
++noinst_LTLIBRARIES = libgfortran_nonshared80.la libgfortran_nonshared110.la \
++		     libgfortran_nonshared140.la
++
+ toolexeclib_DATA = libgfortran.spec
+ libgfortran_la_LINK = $(LINK) $(libgfortran_la_LDFLAGS)
+ libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+@@ -1988,6 +2087,181 @@ BUILT_SOURCES = $(gfor_built_src) $(gfor
+ libgfortran_la_SOURCES = $(gfor_src) $(gfor_built_src) $(gfor_io_src) \
+ 	$(gfor_helper_src) $(gfor_ieee_src) $(gfor_io_headers) $(gfor_specific_src)
+ 
++nonshared_runtime_C_SRC = \
++nonshared-ISO_Fortran_binding.c \
++nonshared-in_unpack_class.c
++
++nonshared_generated_80_C_SRC = \
++nonshared-findloc0_i1.c \
++nonshared-findloc0_i2.c \
++nonshared-findloc0_i4.c \
++nonshared-findloc0_i8.c \
++nonshared-findloc0_i16.c \
++nonshared-findloc0_r4.c \
++nonshared-findloc0_r8.c \
++nonshared-findloc0_r10.c \
++nonshared-findloc0_r16.c \
++nonshared-findloc0_c4.c \
++nonshared-findloc0_c8.c \
++nonshared-findloc0_c10.c \
++nonshared-findloc0_c16.c \
++nonshared-findloc0_s1.c \
++nonshared-findloc0_s4.c \
++nonshared-findloc1_i1.c \
++nonshared-findloc1_i2.c \
++nonshared-findloc1_i4.c \
++nonshared-findloc1_i8.c \
++nonshared-findloc1_i16.c \
++nonshared-findloc1_r4.c \
++nonshared-findloc1_r8.c \
++nonshared-findloc1_r10.c \
++nonshared-findloc1_r16.c \
++nonshared-findloc1_c4.c \
++nonshared-findloc1_c8.c \
++nonshared-findloc1_c10.c \
++nonshared-findloc1_c16.c \
++nonshared-findloc1_s1.c \
++nonshared-findloc1_s4.c \
++nonshared-findloc2_s1.c \
++nonshared-findloc2_s4.c
++
++nonshared_generated_all_C_SRC = \
++nonshared-maxloc0_4_m1.c \
++nonshared-maxloc0_4_m2.c \
++nonshared-maxloc0_4_m4.c \
++nonshared-maxloc0_4_m8.c \
++nonshared-maxloc0_4_m16.c \
++nonshared-maxloc0_8_m1.c \
++nonshared-maxloc0_8_m2.c \
++nonshared-maxloc0_8_m4.c \
++nonshared-maxloc0_8_m8.c \
++nonshared-maxloc0_8_m16.c \
++nonshared-maxloc0_16_m1.c \
++nonshared-maxloc0_16_m2.c \
++nonshared-maxloc0_16_m4.c \
++nonshared-maxloc0_16_m8.c \
++nonshared-maxloc0_16_m16.c \
++nonshared-maxloc1_4_m1.c \
++nonshared-maxloc1_4_m2.c \
++nonshared-maxloc1_4_m4.c \
++nonshared-maxloc1_4_m8.c \
++nonshared-maxloc1_4_m16.c \
++nonshared-maxloc1_8_m1.c \
++nonshared-maxloc1_8_m2.c \
++nonshared-maxloc1_8_m4.c \
++nonshared-maxloc1_8_m8.c \
++nonshared-maxloc1_8_m16.c \
++nonshared-maxloc1_16_m1.c \
++nonshared-maxloc1_16_m2.c \
++nonshared-maxloc1_16_m4.c \
++nonshared-maxloc1_16_m8.c \
++nonshared-maxloc1_16_m16.c \
++nonshared-maxval_m1.c \
++nonshared-maxval_m2.c \
++nonshared-maxval_m4.c \
++nonshared-maxval_m8.c \
++nonshared-maxval_m16.c \
++nonshared-minloc0_4_m1.c \
++nonshared-minloc0_4_m2.c \
++nonshared-minloc0_4_m4.c \
++nonshared-minloc0_4_m8.c \
++nonshared-minloc0_4_m16.c \
++nonshared-minloc0_8_m1.c \
++nonshared-minloc0_8_m2.c \
++nonshared-minloc0_8_m4.c \
++nonshared-minloc0_8_m8.c \
++nonshared-minloc0_8_m16.c \
++nonshared-minloc0_16_m1.c \
++nonshared-minloc0_16_m2.c \
++nonshared-minloc0_16_m4.c \
++nonshared-minloc0_16_m8.c \
++nonshared-minloc0_16_m16.c \
++nonshared-minloc1_4_m1.c \
++nonshared-minloc1_4_m2.c \
++nonshared-minloc1_4_m4.c \
++nonshared-minloc1_4_m8.c \
++nonshared-minloc1_4_m16.c \
++nonshared-minloc1_8_m1.c \
++nonshared-minloc1_8_m2.c \
++nonshared-minloc1_8_m4.c \
++nonshared-minloc1_8_m8.c \
++nonshared-minloc1_8_m16.c \
++nonshared-minloc1_16_m1.c \
++nonshared-minloc1_16_m2.c \
++nonshared-minloc1_16_m4.c \
++nonshared-minloc1_16_m8.c \
++nonshared-minloc1_16_m16.c \
++nonshared-minval_m1.c \
++nonshared-minval_m2.c \
++nonshared-minval_m4.c \
++nonshared-minval_m8.c \
++nonshared-minval_m16.c \
++nonshared-pow_m1_m1.c \
++nonshared-pow_m1_m2.c \
++nonshared-pow_m1_m4.c \
++nonshared-pow_m1_m8.c \
++nonshared-pow_m1_m16.c \
++nonshared-pow_m2_m1.c \
++nonshared-pow_m2_m2.c \
++nonshared-pow_m2_m4.c \
++nonshared-pow_m2_m8.c \
++nonshared-pow_m2_m16.c \
++nonshared-pow_m4_m1.c \
++nonshared-pow_m4_m2.c \
++nonshared-pow_m4_m4.c \
++nonshared-pow_m4_m8.c \
++nonshared-pow_m4_m16.c \
++nonshared-pow_m8_m1.c \
++nonshared-pow_m8_m2.c \
++nonshared-pow_m8_m4.c \
++nonshared-pow_m8_m8.c \
++nonshared-pow_m8_m16.c \
++nonshared-pow_m16_m1.c \
++nonshared-pow_m16_m2.c \
++nonshared-pow_m16_m4.c \
++nonshared-pow_m16_m8.c \
++nonshared-pow_m16_m16.c
++
++nonshared_generated_C_SRC = \
++$(nonshared_generated_80_C_SRC) \
++$(nonshared_generated_all_C_SRC)
++
++nonshared_intrinsics_C_SRC = \
++nonshared-is_contiguous.c \
++nonshared-trigd.c
++
++nonshared_intrinsics_f90_SRC = \
++nonshared-random_init.f90
++
++common_nonshared_SRCs = \
++intrinsics/nonshared-random.c \
++intrinsics/nonshared-reduce.c \
++intrinsics/nonshared-selected_int_kind.f90 \
++runtime/nonshared-stop.c \
++runtime/nonshared-in_pack_class.c
++
++libgfortran_nonshared80_la_SOURCES = \
++$(nonshared_runtime_C_SRC) \
++$(nonshared_generated_C_SRC) \
++$(nonshared_intrinsics_C_SRC) \
++$(nonshared_intrinsics_f90_SRC) \
++ieee/nonshared-ieee_arithmetic.c \
++ieee/nonshared-ieee_exceptions.c \
++io/nonshared-transfer.c \
++runtime/nonshared-error.c \
++$(common_nonshared_SRCs)
++
++libgfortran_nonshared110_la_SOURCES = \
++$(nonshared_generated_all_C_SRC) \
++ieee/nonshared-ieee_exceptions.c \
++$(common_nonshared_SRCs) \
++nonshared-in_unpack_class.c
++
++libgfortran_nonshared140_la_SOURCES = \
++$(nonshared_generated_all_C_SRC) \
++$(common_nonshared_SRCs) \
++nonshared-in_unpack_class.c
++
+ I_M4_DEPS = m4/iparm.m4 m4/mtype.m4
+ I_M4_DEPS0 = $(I_M4_DEPS) m4/iforeach.m4
+ I_M4_DEPS1 = $(I_M4_DEPS) m4/ifunction.m4
+@@ -2098,6 +2372,17 @@ clean-cafexeclibLTLIBRARIES:
+ 	  rm -f $${locs}; \
+ 	}
+ 
++clean-noinstLTLIBRARIES:
++	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
++	@list='$(noinst_LTLIBRARIES)'; \
++	locs=`for p in $$list; do echo $$p; done | \
++	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
++	      sort -u`; \
++	test -z "$$locs" || { \
++	  echo rm -f $${locs}; \
++	  rm -f $${locs}; \
++	}
++
+ install-toolexeclibLTLIBRARIES: $(toolexeclib_LTLIBRARIES)
+ 	@$(NORMAL_INSTALL)
+ 	@list='$(toolexeclib_LTLIBRARIES)'; test -n "$(toolexeclibdir)" || list=; \
+@@ -3940,6 +4225,33 @@ intrinsics/random_init.lo: intrinsics/$(
+ 
+ libgfortran.la: $(libgfortran_la_OBJECTS) $(libgfortran_la_DEPENDENCIES) $(EXTRA_libgfortran_la_DEPENDENCIES) 
+ 	$(AM_V_GEN)$(libgfortran_la_LINK) -rpath $(toolexeclibdir) $(libgfortran_la_OBJECTS) $(libgfortran_la_LIBADD) $(LIBS)
++ieee/nonshared-ieee_exceptions.lo: ieee/$(am__dirstamp) \
++	ieee/$(DEPDIR)/$(am__dirstamp)
++intrinsics/nonshared-random.lo: intrinsics/$(am__dirstamp) \
++	intrinsics/$(DEPDIR)/$(am__dirstamp)
++intrinsics/nonshared-reduce.lo: intrinsics/$(am__dirstamp) \
++	intrinsics/$(DEPDIR)/$(am__dirstamp)
++intrinsics/nonshared-selected_int_kind.lo: intrinsics/$(am__dirstamp) \
++	intrinsics/$(DEPDIR)/$(am__dirstamp)
++runtime/nonshared-stop.lo: runtime/$(am__dirstamp) \
++	runtime/$(DEPDIR)/$(am__dirstamp)
++runtime/nonshared-in_pack_class.lo: runtime/$(am__dirstamp) \
++	runtime/$(DEPDIR)/$(am__dirstamp)
++
++libgfortran_nonshared110.la: $(libgfortran_nonshared110_la_OBJECTS) $(libgfortran_nonshared110_la_DEPENDENCIES) $(EXTRA_libgfortran_nonshared110_la_DEPENDENCIES) 
++	$(AM_V_FCLD)$(FCLINK)  $(libgfortran_nonshared110_la_OBJECTS) $(libgfortran_nonshared110_la_LIBADD) $(LIBS)
++
++libgfortran_nonshared140.la: $(libgfortran_nonshared140_la_OBJECTS) $(libgfortran_nonshared140_la_DEPENDENCIES) $(EXTRA_libgfortran_nonshared140_la_DEPENDENCIES) 
++	$(AM_V_FCLD)$(FCLINK)  $(libgfortran_nonshared140_la_OBJECTS) $(libgfortran_nonshared140_la_LIBADD) $(LIBS)
++ieee/nonshared-ieee_arithmetic.lo: ieee/$(am__dirstamp) \
++	ieee/$(DEPDIR)/$(am__dirstamp)
++io/nonshared-transfer.lo: io/$(am__dirstamp) \
++	io/$(DEPDIR)/$(am__dirstamp)
++runtime/nonshared-error.lo: runtime/$(am__dirstamp) \
++	runtime/$(DEPDIR)/$(am__dirstamp)
++
++libgfortran_nonshared80.la: $(libgfortran_nonshared80_la_OBJECTS) $(libgfortran_nonshared80_la_DEPENDENCIES) $(EXTRA_libgfortran_nonshared80_la_DEPENDENCIES) 
++	$(AM_V_FCLD)$(FCLINK)  $(libgfortran_nonshared80_la_OBJECTS) $(libgfortran_nonshared80_la_LIBADD) $(LIBS)
+ 
+ mostlyclean-compile:
+ 	-rm -f *.$(OBJEXT)
+@@ -3959,6 +4271,137 @@ mostlyclean-compile:
+ distclean-compile:
+ 	-rm -f *.tab.c
+ 
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-ISO_Fortran_binding.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_c10.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_c16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_c4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_c8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_i1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_i16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_i2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_i4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_i8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_r10.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_r16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_r4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_r8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_s1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc0_s4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_c10.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_c16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_c4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_c8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_i1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_i16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_i2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_i4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_i8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_r10.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_r16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_r4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_r8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_s1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc1_s4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc2_s1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-findloc2_s4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-in_unpack_class.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-is_contiguous.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_16_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_16_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_16_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_16_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_16_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_4_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_4_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_4_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_4_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_4_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_8_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_8_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_8_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_8_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc0_8_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_16_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_16_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_16_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_16_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_16_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_4_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_4_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_4_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_4_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_4_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_8_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_8_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_8_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_8_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxloc1_8_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxval_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxval_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxval_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxval_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-maxval_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_16_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_16_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_16_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_16_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_16_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_4_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_4_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_4_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_4_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_4_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_8_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_8_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_8_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_8_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc0_8_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_16_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_16_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_16_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_16_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_16_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_4_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_4_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_4_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_4_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_4_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_8_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_8_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_8_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_8_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minloc1_8_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minval_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minval_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minval_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minval_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-minval_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m16_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m16_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m16_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m16_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m16_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m1_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m1_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m1_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m1_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m1_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m2_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m2_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m2_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m2_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m2_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m4_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m4_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m4_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m4_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m4_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m8_m1.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m8_m16.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m8_m2.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m8_m4.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-pow_m8_m8.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nonshared-trigd.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@caf/$(DEPDIR)/single.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@generated/$(DEPDIR)/all_l1.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@generated/$(DEPDIR)/all_l16.Plo@am__quote@
+@@ -4582,6 +5025,8 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@generated/$(DEPDIR)/unpack_r4.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@generated/$(DEPDIR)/unpack_r8.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@ieee/$(DEPDIR)/ieee_helper.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@ieee/$(DEPDIR)/nonshared-ieee_arithmetic.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@ieee/$(DEPDIR)/nonshared-ieee_exceptions.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/abort.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/access.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/args.Plo@am__quote@
+@@ -4616,6 +5061,8 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/link.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/move_alloc.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/mvbits.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/nonshared-random.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/nonshared-reduce.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/pack_generic.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/perror.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@intrinsics/$(DEPDIR)/rand.Plo@am__quote@
+@@ -4648,6 +5095,7 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/intrinsics.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/list_read.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/lock.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/nonshared-transfer.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/open.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/read.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@io/$(DEPDIR)/size_from_kind.Plo@am__quote@
+@@ -4671,6 +5119,9 @@ distclean-compile:
+ @AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/main.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/memory.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/minimal.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/nonshared-error.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/nonshared-in_pack_class.Plo@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/nonshared-stop.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/pause.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/select.Plo@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@runtime/$(DEPDIR)/stop.Plo@am__quote@
+@@ -4909,11 +5360,12 @@ maintainer-clean-generic:
+ clean: clean-am
+ 
+ clean-am: clean-cafexeclibLTLIBRARIES clean-generic clean-libtool \
+-	clean-local clean-toolexeclibLTLIBRARIES mostlyclean-am
++	clean-local clean-noinstLTLIBRARIES \
++	clean-toolexeclibLTLIBRARIES mostlyclean-am
+ 
+ distclean: distclean-am
+ 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+-	-rm -rf caf/$(DEPDIR) generated/$(DEPDIR) ieee/$(DEPDIR) intrinsics/$(DEPDIR) io/$(DEPDIR) runtime/$(DEPDIR)
++	-rm -rf ./$(DEPDIR) caf/$(DEPDIR) generated/$(DEPDIR) ieee/$(DEPDIR) intrinsics/$(DEPDIR) io/$(DEPDIR) runtime/$(DEPDIR)
+ 	-rm -f Makefile
+ distclean-am: clean-am distclean-compile distclean-generic \
+ 	distclean-hdr distclean-libtool distclean-local distclean-tags
+@@ -4962,7 +5414,7 @@ installcheck-am:
+ maintainer-clean: maintainer-clean-am
+ 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
+ 	-rm -rf $(top_srcdir)/autom4te.cache
+-	-rm -rf caf/$(DEPDIR) generated/$(DEPDIR) ieee/$(DEPDIR) intrinsics/$(DEPDIR) io/$(DEPDIR) runtime/$(DEPDIR)
++	-rm -rf ./$(DEPDIR) caf/$(DEPDIR) generated/$(DEPDIR) ieee/$(DEPDIR) intrinsics/$(DEPDIR) io/$(DEPDIR) runtime/$(DEPDIR)
+ 	-rm -f Makefile
+ maintainer-clean-am: distclean-am maintainer-clean-generic \
+ 	maintainer-clean-local
+@@ -4989,14 +5441,15 @@ uninstall-am: uninstall-cafexeclibLTLIBR
+ .PHONY: CTAGS GTAGS TAGS all all-am all-local am--refresh check \
+ 	check-am clean clean-cafexeclibLTLIBRARIES clean-cscope \
+ 	clean-generic clean-libtool clean-local \
+-	clean-toolexeclibLTLIBRARIES cscope cscopelist-am ctags \
+-	ctags-am distclean distclean-compile distclean-generic \
+-	distclean-hdr distclean-libtool distclean-local distclean-tags \
+-	dvi dvi-am html html-am info info-am install install-am \
+-	install-cafexeclibLTLIBRARIES install-data install-data-am \
+-	install-dvi install-dvi-am install-exec install-exec-am \
+-	install-exec-local install-gfor_cHEADERS install-html \
+-	install-html-am install-info install-info-am install-man \
++	clean-noinstLTLIBRARIES clean-toolexeclibLTLIBRARIES cscope \
++	cscopelist-am ctags ctags-am distclean distclean-compile \
++	distclean-generic distclean-hdr distclean-libtool \
++	distclean-local distclean-tags dvi dvi-am html html-am info \
++	info-am install install-am install-cafexeclibLTLIBRARIES \
++	install-data install-data-am install-dvi install-dvi-am \
++	install-exec install-exec-am install-exec-local \
++	install-gfor_cHEADERS install-html install-html-am \
++	install-info install-info-am install-man \
+ 	install-nodist_fincludeHEADERS install-pdf install-pdf-am \
+ 	install-ps install-ps-am install-strip install-toolexeclibDATA \
+ 	install-toolexeclibLTLIBRARIES installcheck installcheck-am \
+@@ -5062,6 +5515,56 @@ ieee_exceptions.mod: ieee/ieee_exception
+ ieee_arithmetic.mod: ieee/ieee_arithmetic.lo
+ 	:
+ 
++intrinsics/nonshared-selected_int_kind.lo: AM_FCFLAGS += -fallow-leading-underscore -fbuilding-libgfortran
++
++$(patsubst %.c,%.lo,$(nonshared_generated_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/generated/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_generated_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/generated/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_intrinsics_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/intrinsics/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_intrinsics_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/intrinsics/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_runtime_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/runtime/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_runtime_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/runtime/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_ieee_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/ieee/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_ieee_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/ieee/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.lo,$(nonshared_io_C_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/io/%.c
++	$(LTCOMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.c,%.o,$(nonshared_io_C_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/io/%.c
++	$(COMPILE) -c -o $@ $< -DLIBGFORTRAN_NONSHARED
++
++$(patsubst %.f90,%.lo,$(nonshared_intrinsics_f90_SRC) $(nonshared)): \
++nonshared-%.lo: $(srcdir)/intrinsics/%.f90
++	$(LTPPFCCOMPILE) -c -o $@ $< -fallow-leading-underscore
++
++$(patsubst %.f90,%.o,$(nonshared_intrinsics_f90_SRC) $(nonshared)): \
++nonshared-%.o: $(srcdir)/intrinsics/%.f90
++	$(PPFCCOMPILE) -c -o $@ $< -fallow-leading-underscore
++
+ kinds.h: $(srcdir)/mk-kinds-h.sh
+ 	$(SHELL) $(srcdir)/mk-kinds-h.sh '@LIBGOMP_CHECKED_INT_KINDS@' \
+ 					 '@LIBGOMP_CHECKED_REAL_KINDS@' \
+--- libgfortran/io/nonshared-transfer.c.jj	2025-05-09 08:18:56.918134650 +0200
++++ libgfortran/io/nonshared-transfer.c	2025-05-09 08:18:56.918134650 +0200
+@@ -0,0 +1,42 @@
++/* Copyright (C) 2002-2025 Free Software Foundation, Inc.
++   Contributed by Andy Vaught
++   Namelist transfer functions contributed by Paul Thomas
++   F2003 I/O support contributed by Jerry DeLisle
++
++This file is part of the GNU Fortran runtime library (libgfortran).
++
++Libgfortran is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++Libgfortran is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++Under Section 7 of GPL version 3, you are granted additional
++permissions described in the GCC Runtime Library Exception, version
++3.1, as published by the Free Software Foundation.
++
++You should have received a copy of the GNU General Public License and
++a copy of the GCC Runtime Library Exception along with this program;
++see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
++<http://www.gnu.org/licenses/>.  */
++
++
++/* transfer.c -- Top level handling of data transfer statements.  */
++
++#include "io.h"
++#include "fbuf.h"
++#include "format.h"
++#include "unix.h"
++#include "async.h"
++#include <string.h>
++#include <errno.h>
++
++void
++st_wait_async (st_parameter_wait *wtp)
++{
++  (void) wtp;
++}
