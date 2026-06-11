@@ -32,9 +32,6 @@ cross_target_stdlib:
   - sysroot                     # [ppc64le]
   - sysroot                     # [linux and aarch64]
   - m2w64-sysroot               # [win]
-# openmp versions
-openmp_ver:
-  - 4.5
 libgomp_ver:
   - 1.0.0
 channel_sources:

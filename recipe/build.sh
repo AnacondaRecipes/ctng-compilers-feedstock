@@ -85,6 +85,9 @@ if [[ "$TARGET" == *linux* ]]; then
   GCC_CONFIGURE_OPTIONS+=(--enable-libsanitizer)
   GCC_CONFIGURE_OPTIONS+=(--enable-default-pie)
   GCC_CONFIGURE_OPTIONS+=(--enable-threads=posix)
+  # The bootstrap compiler's static libstdc++.a can reference dladdr from the
+  # tzdata relocation patch, so stage1 tools such as gcov need libdl explicitly.
+  export LIBS="-Wl,--undefined=dladdr -ldl ${LIBS:-}"
 fi
 
 ../configure \
