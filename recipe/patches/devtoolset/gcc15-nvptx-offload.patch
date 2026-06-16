@@ -1,0 +1,393 @@
+--- libstdc++-v3/configure.ac.jj	2025-06-04 19:13:51.905392301 +0200
++++ libstdc++-v3/configure.ac	2025-06-04 19:14:04.088236951 +0200
+@@ -710,6 +710,13 @@ CCAS='$(CXX)'
+ CCASFLAGS='$(CXXFLAGS)'
+ AC_SUBST(CCAS)
+ AC_SUBST(CCASFLAGS)
++case "$host" in
++  *amdgcn*|*ptx*)
++    build_nonshared=no;;
++  *)
++    build_nonshared=yes;;
++esac
++AM_CONDITIONAL([BUILD_NONSHARED], [test x${build_nonshared} = xyes])
+ 
+ dnl In autoconf 2.5x, AC_OUTPUT is replaced by four AC_CONFIG_* macros,
+ dnl which can all be called multiple times as needed, plus one (different)
+--- libstdc++-v3/configure.jj	2025-06-04 19:13:51.911392225 +0200
++++ libstdc++-v3/configure	2025-06-04 19:14:48.940665026 +0200
+@@ -633,6 +633,8 @@ ac_subst_vars='am__EXEEXT_FALSE
+ am__EXEEXT_TRUE
+ LTLIBOBJS
+ LIBOBJS
++BUILD_NONSHARED_FALSE
++BUILD_NONSHARED_TRUE
+ CCASFLAGS
+ CCAS
+ get_gcc_base_ver
+@@ -12282,7 +12284,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12285 "configure"
++#line 12287 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -12388,7 +12390,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12391 "configure"
++#line 12393 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -16184,7 +16186,7 @@ $as_echo "$glibcxx_cv_atomic_long_long"
+   # Fake what AC_TRY_COMPILE does.
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16187 "configure"
++#line 16189 "configure"
+ int main()
+ {
+   typedef bool atomic_type;
+@@ -16219,7 +16221,7 @@ $as_echo "$glibcxx_cv_atomic_bool" >&6;
+     rm -f conftest*
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16222 "configure"
++#line 16224 "configure"
+ int main()
+ {
+   typedef short atomic_type;
+@@ -16254,7 +16256,7 @@ $as_echo "$glibcxx_cv_atomic_short" >&6;
+     rm -f conftest*
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16257 "configure"
++#line 16259 "configure"
+ int main()
+ {
+   // NB: _Atomic_word not necessarily int.
+@@ -16290,7 +16292,7 @@ $as_echo "$glibcxx_cv_atomic_int" >&6; }
+     rm -f conftest*
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16293 "configure"
++#line 16295 "configure"
+ int main()
+ {
+   typedef long long atomic_type;
+@@ -16447,7 +16449,7 @@ $as_echo "mutex" >&6; }
+   # unnecessary for this test.
+ 
+     cat > conftest.$ac_ext << EOF
+-#line 16450 "configure"
++#line 16452 "configure"
+ int main()
+ {
+   _Decimal32 d1;
+@@ -16489,7 +16491,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+   # unnecessary for this test.
+ 
+   cat > conftest.$ac_ext << EOF
+-#line 16492 "configure"
++#line 16494 "configure"
+ template<typename T1, typename T2>
+   struct same
+   { typedef T2 type; };
+@@ -55807,6 +55809,20 @@ CCAS='$(CXX)'
+ CCASFLAGS='$(CXXFLAGS)'
+ 
+ 
++case "$host" in
++  *amdgcn*|*ptx*)
++    build_nonshared=no;;
++  *)
++    build_nonshared=yes;;
++esac
++ if test x${build_nonshared} = xyes; then
++  BUILD_NONSHARED_TRUE=
++  BUILD_NONSHARED_FALSE='#'
++else
++  BUILD_NONSHARED_TRUE='#'
++  BUILD_NONSHARED_FALSE=
++fi
++
+ 
+ ac_config_files="$ac_config_files Makefile"
+ 
+@@ -56106,6 +56122,10 @@ if test -z "${INCLUDE_DIR_NOTPARALLEL_TR
+   as_fn_error $? "conditional \"INCLUDE_DIR_NOTPARALLEL\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+ fi
++if test -z "${BUILD_NONSHARED_TRUE}" && test -z "${BUILD_NONSHARED_FALSE}"; then
++  as_fn_error $? "conditional \"BUILD_NONSHARED\" was never defined.
++Usually this means the macro was only invoked conditionally." "$LINENO" 5
++fi
+ 
+ : "${CONFIG_STATUS=./config.status}"
+ ac_write_fail=0
+--- libstdc++-v3/src/Makefile.am.jj	2025-06-04 19:13:51.888392518 +0200
++++ libstdc++-v3/src/Makefile.am	2025-06-04 19:14:39.270788328 +0200
+@@ -42,10 +42,18 @@ backtrace_dir =
+ experimental_dir =
+ endif
+ 
++if BUILD_NONSHARED
++nonshared_subdirs = nonshared98 nonshared11 nonshared17 nonshared20 nonshared23 nonshared26
++nonshared_libs = libstdc++_nonshared80.la libstdc++_nonshared110.la libstdc++_nonshared140.la
++else
++nonshared_subdirs =
++nonshared_libs =
++endif
++
+ ## Keep this list sync'd with acinclude.m4:GLIBCXX_CONFIGURE.
+ SUBDIRS = c++98 c++11 c++17 c++20 c++23 c++26 \
+ 	$(filesystem_dir) $(backtrace_dir) $(experimental_dir) \
+-	nonshared98 nonshared11 nonshared17 nonshared20 nonshared23 nonshared26
++	$(nonshared_subdirs)
+ 
+ # Cross compiler support.
+ if VTV_CYGMIN
+@@ -54,9 +62,7 @@ else
+ toolexeclib_LTLIBRARIES = libstdc++.la
+ endif
+ 
+-noinst_LTLIBRARIES = libstdc++_nonshared80.la \
+-		     libstdc++_nonshared110.la \
+-		     libstdc++_nonshared140.la
++noinst_LTLIBRARIES = $(nonshared_libs)
+ 
+ if VTV_CYGMIN
+ vtv_stubs.cc:
+--- libstdc++-v3/src/Makefile.in.jj	2025-06-04 19:14:04.096236849 +0200
++++ libstdc++-v3/src/Makefile.in	2025-06-04 19:14:53.060612491 +0200
+@@ -174,12 +174,15 @@ AM_V_lt = $(am__v_lt_@AM_V@)
+ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+ am__v_lt_0 = --silent
+ am__v_lt_1 = 
++@BUILD_NONSHARED_TRUE@am_libstdc___nonshared110_la_rpath =
+ am_libstdc___nonshared140_la_OBJECTS =
+ libstdc___nonshared140_la_OBJECTS =  \
+ 	$(am_libstdc___nonshared140_la_OBJECTS)
++@BUILD_NONSHARED_TRUE@am_libstdc___nonshared140_la_rpath =
+ am_libstdc___nonshared80_la_OBJECTS =
+ libstdc___nonshared80_la_OBJECTS =  \
+ 	$(am_libstdc___nonshared80_la_OBJECTS)
++@BUILD_NONSHARED_TRUE@am_libstdc___nonshared80_la_rpath =
+ libvtv_la_LIBADD =
+ @VTV_CYGMIN_TRUE@am_libvtv_la_OBJECTS = vtv_stubs.lo
+ libvtv_la_OBJECTS = $(am_libvtv_la_OBJECTS)
+@@ -523,18 +526,19 @@ AM_CPPFLAGS = $(GLIBCXX_INCLUDES) $(CPPF
+ @GLIBCXX_HOSTED_FALSE@backtrace_dir = 
+ @GLIBCXX_HOSTED_FALSE@experimental_dir = 
+ @GLIBCXX_HOSTED_TRUE@experimental_dir = experimental
++@BUILD_NONSHARED_FALSE@nonshared_subdirs = 
++@BUILD_NONSHARED_TRUE@nonshared_subdirs = nonshared98 nonshared11 nonshared17 nonshared20 nonshared23 nonshared26
++@BUILD_NONSHARED_FALSE@nonshared_libs = 
++@BUILD_NONSHARED_TRUE@nonshared_libs = libstdc++_nonshared80.la libstdc++_nonshared110.la libstdc++_nonshared140.la
+ SUBDIRS = c++98 c++11 c++17 c++20 c++23 c++26 \
+ 	$(filesystem_dir) $(backtrace_dir) $(experimental_dir) \
+-	nonshared98 nonshared11 nonshared17 nonshared20 nonshared23 nonshared26
++	$(nonshared_subdirs)
+ 
+ @VTV_CYGMIN_FALSE@toolexeclib_LTLIBRARIES = libstdc++.la
+ 
+ # Cross compiler support.
+ @VTV_CYGMIN_TRUE@toolexeclib_LTLIBRARIES = libvtv.la libstdc++.la
+-noinst_LTLIBRARIES = libstdc++_nonshared80.la \
+-		     libstdc++_nonshared110.la \
+-		     libstdc++_nonshared140.la
+-
++noinst_LTLIBRARIES = $(nonshared_libs)
+ @VTV_CYGMIN_TRUE@libvtv_la_SOURCES = vtv_stubs.cc
+ @VTV_CYGMIN_TRUE@libvtv_la_LDFLAGS = $(lt_host_flags)
+ @VTV_CYGMIN_TRUE@libvtv_la_AM_CXXFLAGS = \
+@@ -851,13 +855,13 @@ libstdc++.la: $(libstdc___la_OBJECTS) $(
+ 	$(AM_V_GEN)$(libstdc___la_LINK) $(am_libstdc___la_rpath) $(libstdc___la_OBJECTS) $(libstdc___la_LIBADD) $(LIBS)
+ 
+ libstdc++_nonshared110.la: $(libstdc___nonshared110_la_OBJECTS) $(libstdc___nonshared110_la_DEPENDENCIES) $(EXTRA_libstdc___nonshared110_la_DEPENDENCIES) 
+-	$(AM_V_CCLD)$(LINK)  $(libstdc___nonshared110_la_OBJECTS) $(libstdc___nonshared110_la_LIBADD) $(LIBS)
++	$(AM_V_CCLD)$(LINK) $(am_libstdc___nonshared110_la_rpath) $(libstdc___nonshared110_la_OBJECTS) $(libstdc___nonshared110_la_LIBADD) $(LIBS)
+ 
+ libstdc++_nonshared140.la: $(libstdc___nonshared140_la_OBJECTS) $(libstdc___nonshared140_la_DEPENDENCIES) $(EXTRA_libstdc___nonshared140_la_DEPENDENCIES) 
+-	$(AM_V_CCLD)$(LINK)  $(libstdc___nonshared140_la_OBJECTS) $(libstdc___nonshared140_la_LIBADD) $(LIBS)
++	$(AM_V_CCLD)$(LINK) $(am_libstdc___nonshared140_la_rpath) $(libstdc___nonshared140_la_OBJECTS) $(libstdc___nonshared140_la_LIBADD) $(LIBS)
+ 
+ libstdc++_nonshared80.la: $(libstdc___nonshared80_la_OBJECTS) $(libstdc___nonshared80_la_DEPENDENCIES) $(EXTRA_libstdc___nonshared80_la_DEPENDENCIES) 
+-	$(AM_V_CCLD)$(LINK)  $(libstdc___nonshared80_la_OBJECTS) $(libstdc___nonshared80_la_LIBADD) $(LIBS)
++	$(AM_V_CCLD)$(LINK) $(am_libstdc___nonshared80_la_rpath) $(libstdc___nonshared80_la_OBJECTS) $(libstdc___nonshared80_la_LIBADD) $(LIBS)
+ 
+ libvtv.la: $(libvtv_la_OBJECTS) $(libvtv_la_DEPENDENCIES) $(EXTRA_libvtv_la_DEPENDENCIES) 
+ 	$(AM_V_GEN)$(libvtv_la_LINK) $(am_libvtv_la_rpath) $(libvtv_la_OBJECTS) $(libvtv_la_LIBADD) $(LIBS)
+
+--- libgfortran/configure.ac.orig	2025-06-04 15:39:38.229810679 -0400
++++ libgfortran/configure.ac	2025-06-04 15:38:52.859340347 -0400
+@@ -752,6 +752,14 @@ if test "$libgfor_cv_posix_getpwuid_r" =
+ fi
+ 
+ 
++case "$host" in
++  *amdgcn*|*ptx*)
++    build_nonshared=no;;
++  *)
++    build_nonshared=yes;;
++esac
++AM_CONDITIONAL([BUILD_NONSHARED], [test x${build_nonshared} = xyes])
++
+ # Check out attribute support.
+ LIBGFOR_CHECK_ATTRIBUTE_VISIBILITY
+ LIBGFOR_CHECK_ATTRIBUTE_ALIAS
+--- libgfortran/configure.orig	2025-06-04 15:39:21.171243811 -0400
++++ libgfortran/configure	2025-06-04 15:39:54.426500140 -0400
+@@ -639,6 +639,8 @@ LIBOBJS
+ get_gcc_base_ver
+ HAVE_AVX128_FALSE
+ HAVE_AVX128_TRUE
++BUILD_NONSHARED_FALSE
++BUILD_NONSHARED_TRUE
+ tmake_file
+ IEEE_FLAGS
+ IEEE_SUPPORT
+@@ -12847,7 +12849,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12850 "configure"
++#line 12852 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -12953,7 +12955,7 @@ else
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 12956 "configure"
++#line 12958 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -30901,6 +30903,20 @@ $as_echo "#define HAVE_POSIX_GETPWUID_R
+ 
+ fi
+ 
++case "$host" in
++  *amdgcn*|*ptx*)
++    build_nonshared=no;;
++  *)
++    build_nonshared=yes;;
++esac
++ if test x${build_nonshared} = xyes; then
++  BUILD_NONSHARED_TRUE=
++  BUILD_NONSHARED_FALSE='#'
++else
++  BUILD_NONSHARED_TRUE='#'
++  BUILD_NONSHARED_FALSE=
++fi
++
+ 
+ # Check out attribute support.
+ 
+@@ -31721,6 +31737,10 @@ if test -z "${IEEE_SUPPORT_TRUE}" && tes
+   as_fn_error $? "conditional \"IEEE_SUPPORT\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+ fi
++if test -z "${BUILD_NONSHARED_TRUE}" && test -z "${BUILD_NONSHARED_FALSE}"; then
++  as_fn_error $? "conditional \"BUILD_NONSHARED\" was never defined.
++Usually this means the macro was only invoked conditionally." "$LINENO" 5
++fi
+ if test -z "${HAVE_AVX128_TRUE}" && test -z "${HAVE_AVX128_FALSE}"; then
+   as_fn_error $? "conditional \"HAVE_AVX128\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+--- libgfortran/Makefile.am.orig	2025-06-04 15:41:28.901589188 -0400
++++ libgfortran/Makefile.am	2025-06-04 15:45:52.920898503 -0400
+@@ -42,6 +42,12 @@ extra_darwin_ldflags_libgfortran += -Wc,
+ extra_darwin_ldflags_libgfortran += -Wl,-rpath,@loader_path
+ endif
+ 
++if BUILD_NONSHARED
++nonshared_libs = libgfortran_nonshared80.la libgfortran_nonshared110.la libgfortran_nonshared140.la
++else
++nonshared_libs =
++endif
++
+ gfor_c_HEADERS = ISO_Fortran_binding.h
+ gfor_cdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
+ 
+@@ -49,8 +55,7 @@ LTLDFLAGS = $(shell $(SHELL) $(top_srcdi
+ 	    $(lt_host_flags)
+ 
+ toolexeclib_LTLIBRARIES = libgfortran.la
+-noinst_LTLIBRARIES = libgfortran_nonshared80.la libgfortran_nonshared110.la \
+-		     libgfortran_nonshared140.la
++noinst_LTLIBRARIES = $(nonshared_libs)
+ toolexeclib_DATA = libgfortran.spec
+ libgfortran_la_LINK = $(LINK) $(libgfortran_la_LDFLAGS)
+ libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+--- libgfortran/Makefile.in.orig	2025-06-04 15:41:37.339898385 -0400
++++ libgfortran/Makefile.in	2025-06-04 15:46:25.513950233 -0400
+@@ -781,11 +781,13 @@ AM_V_lt = $(am__v_lt_@AM_V@)
+ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+ am__v_lt_0 = --silent
+ am__v_lt_1 = 
++@BUILD_NONSHARED_TRUE@am_libgfortran_nonshared110_la_rpath =
+ libgfortran_nonshared140_la_LIBADD =
+ am_libgfortran_nonshared140_la_OBJECTS = $(am__objects_66) \
+ 	$(am__objects_67) nonshared-in_unpack_class.lo
+ libgfortran_nonshared140_la_OBJECTS =  \
+ 	$(am_libgfortran_nonshared140_la_OBJECTS)
++@BUILD_NONSHARED_TRUE@am_libgfortran_nonshared140_la_rpath =
+ libgfortran_nonshared80_la_LIBADD =
+ am__objects_68 = nonshared-ISO_Fortran_binding.lo \
+ 	nonshared-in_unpack_class.lo
+@@ -815,6 +817,7 @@ am_libgfortran_nonshared80_la_OBJECTS =
+ 	runtime/nonshared-error.lo $(am__objects_67)
+ libgfortran_nonshared80_la_OBJECTS =  \
+ 	$(am_libgfortran_nonshared80_la_OBJECTS)
++@BUILD_NONSHARED_TRUE@am_libgfortran_nonshared80_la_rpath =
+ AM_V_P = $(am__v_P_@AM_V@)
+ am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
+ am__v_P_0 = false
+@@ -1078,15 +1081,15 @@ gcc_version := $(shell @get_gcc_base_ver
+ @LIBGFOR_USE_SYMVER_SUN_TRUE@@LIBGFOR_USE_SYMVER_TRUE@version_dep = gfortran.ver-sun gfortran.ver
+ extra_darwin_ldflags_libgfortran = @extra_ldflags_libgfortran@ \
+ 	$(am__append_1)
++@BUILD_NONSHARED_FALSE@nonshared_libs = 
++@BUILD_NONSHARED_TRUE@nonshared_libs = libgfortran_nonshared80.la libgfortran_nonshared110.la libgfortran_nonshared140.la
+ gfor_c_HEADERS = ISO_Fortran_binding.h
+ gfor_cdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
+ LTLDFLAGS = $(shell $(SHELL) $(top_srcdir)/../libtool-ldflags $(LDFLAGS)) \
+ 	    $(lt_host_flags)
+ 
+ toolexeclib_LTLIBRARIES = libgfortran.la
+-noinst_LTLIBRARIES = libgfortran_nonshared80.la libgfortran_nonshared110.la \
+-		     libgfortran_nonshared140.la
+-
++noinst_LTLIBRARIES = $(nonshared_libs)
+ toolexeclib_DATA = libgfortran.spec
+ libgfortran_la_LINK = $(LINK) $(libgfortran_la_LDFLAGS)
+ libgfortran_la_LDFLAGS = -version-info `grep -v '^\#' $(srcdir)/libtool-version` \
+@@ -4239,10 +4242,10 @@ runtime/nonshared-in_pack_class.lo: runt
+ 	runtime/$(DEPDIR)/$(am__dirstamp)
+ 
+ libgfortran_nonshared110.la: $(libgfortran_nonshared110_la_OBJECTS) $(libgfortran_nonshared110_la_DEPENDENCIES) $(EXTRA_libgfortran_nonshared110_la_DEPENDENCIES) 
+-	$(AM_V_FCLD)$(FCLINK)  $(libgfortran_nonshared110_la_OBJECTS) $(libgfortran_nonshared110_la_LIBADD) $(LIBS)
++	$(AM_V_FCLD)$(FCLINK) $(am_libgfortran_nonshared110_la_rpath) $(libgfortran_nonshared110_la_OBJECTS) $(libgfortran_nonshared110_la_LIBADD) $(LIBS)
+ 
+ libgfortran_nonshared140.la: $(libgfortran_nonshared140_la_OBJECTS) $(libgfortran_nonshared140_la_DEPENDENCIES) $(EXTRA_libgfortran_nonshared140_la_DEPENDENCIES) 
+-	$(AM_V_FCLD)$(FCLINK)  $(libgfortran_nonshared140_la_OBJECTS) $(libgfortran_nonshared140_la_LIBADD) $(LIBS)
++	$(AM_V_FCLD)$(FCLINK) $(am_libgfortran_nonshared140_la_rpath) $(libgfortran_nonshared140_la_OBJECTS) $(libgfortran_nonshared140_la_LIBADD) $(LIBS)
+ ieee/nonshared-ieee_arithmetic.lo: ieee/$(am__dirstamp) \
+ 	ieee/$(DEPDIR)/$(am__dirstamp)
+ io/nonshared-transfer.lo: io/$(am__dirstamp) \
+@@ -4251,7 +4254,7 @@ runtime/nonshared-error.lo: runtime/$(am
+ 	runtime/$(DEPDIR)/$(am__dirstamp)
+ 
+ libgfortran_nonshared80.la: $(libgfortran_nonshared80_la_OBJECTS) $(libgfortran_nonshared80_la_DEPENDENCIES) $(EXTRA_libgfortran_nonshared80_la_DEPENDENCIES) 
+-	$(AM_V_FCLD)$(FCLINK)  $(libgfortran_nonshared80_la_OBJECTS) $(libgfortran_nonshared80_la_LIBADD) $(LIBS)
++	$(AM_V_FCLD)$(FCLINK) $(am_libgfortran_nonshared80_la_rpath) $(libgfortran_nonshared80_la_OBJECTS) $(libgfortran_nonshared80_la_LIBADD) $(LIBS)
+ 
+ mostlyclean-compile:
+ 	-rm -f *.$(OBJEXT)
