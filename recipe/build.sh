@@ -4,6 +4,11 @@ set -ex
 
 source ${RECIPE_DIR}/setup_compiler.sh
 
+ln -s mpfr-* mpfr
+ln -s mpc-* mpc
+ln -s gmp-* gmp
+ln -s isl-* isl
+
 # ensure patch is applied
 grep 'conda-forge:: allow' gcc/gcc.c*
 
@@ -53,7 +58,7 @@ export gcc_cv_objdump=$OBJDUMP_FOR_TARGET
 
 ls $BUILD_PREFIX/bin/
 
-./contrib/download_prerequisites
+# ./contrib/download_prerequisites
 
 # We want CONDA_PREFIX/usr/lib not CONDA_PREFIX/usr/lib64 and this
 # is the only way. It is incompatible with multilib (obviously).
@@ -70,6 +75,11 @@ done
 if [[ "$gcc_version" == "11."* && "$build_platform" != "$target_platform" ]]; then
   sed -i.bak 's@-I$glibcxx_srcdir/libsupc++@-I$glibcxx_srcdir/libsupc++ -nostdinc++@g' libstdc++-v3/configure
 fi
+
+# https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L750
+touch -r isl-0.24/m4/ax_prog_cxx_for_build.m4 isl-0.24/m4/ax_prog_cc_for_build.m4
+
+./contrib/gcc_update --touch
 
 mkdir -p build
 cd build
@@ -116,8 +126,66 @@ fi
   --with-build-sysroot=${BUILD_PREFIX}/${TARGET}/sysroot \
   --with-native-system-header-dir=${NATIVE_SYSTEM_HEADER_DIR} \
   --with-gxx-include-dir="${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/include/c++" \
+  --enable-initfini-array \
+  --with-gcc-major-version-only \
+  --enable-host-pie \
+  --enable-host-bind-now \
+  --enable-gnu-indirect-function \
+  --with-linker-hash-style=gnu \
+  --enable-libstdcxx-backtrace \
+  --enable-gnu-unique-object \
+  --enable-linker-build-id \
+  --disable-libunwind-exceptions \
+  --enable-checking=release \
   "${GCC_CONFIGURE_OPTIONS[@]}"
 
 # Setting the CPU_COUNT=1 lets you see which job failed!
-#CPU_COUNT=1
-make -j${CPU_COUNT}
+# CPU_COUNT=1
+make -j${CPU_COUNT} LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now
+
+echo
+echo
+echo "Testing jcjcjcjcjc"
+echo "++++++++++++++++++"
+echo
+
+mkdir -p libstdc++_compat_test
+cd libstdc++_compat_test
+
+
+readelf -Ws /usr/lib64/libstdc++.so.6 \
+| sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+| awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+| sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+| LC_ALL=C sort -u > system.abilist
+
+# This is in the "build folder"
+readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
+| sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+| awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+| sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+| LC_ALL=C sort -u > vanilla.abilist
+
+diff -up system.abilist vanilla.abilist \
+| awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+
+${SRC_DIR}/build/gcc/xgcc \
+    -B ${SRC_DIR}/build/gcc \
+    -shared \
+    -o libstdc++_nonshared.so \
+    -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
+    -Wl,--no-whole-archive /usr/lib64/libstdc++.so.6
+
+readelf -Ws libstdc++_nonshared.so
+| sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p'
+| awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}'
+| sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//'
+| LC_ALL=C sort -u > nonshared.abilist
+
+echo ====================NONSHARED=========================
+ldd -d -r ./libstdc++_nonshared.so || :
+ldd -u ./libstdc++_nonshared.so || :
+diff -up system2vanilla.abilist.diff nonshared.abilist || :
+readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a | grep HIDDEN.*UND | grep -v __dso_handle || :
+echo ====================NONSHARED END=====================
+rm -f libstdc++_nonshared.so

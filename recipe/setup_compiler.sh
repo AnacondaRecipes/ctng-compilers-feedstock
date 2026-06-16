@@ -28,6 +28,7 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
       "binutils_impl_${cross_target_platform}=${binutils_version}" \
       "${cross_target_stdlib}_${cross_target_platform}=${cross_target_stdlib_version}" \
       make \
+      "flex=2.6.4" \
       ${extra_pkgs[@]}
 fi
 

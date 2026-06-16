@@ -4,7 +4,7 @@ triplet:
   - aarch64-conda-linux-gnu     # [linux and aarch64]
   - x86_64-w64-mingw32          # [win]
 gcc_version:
-  - 15.2.0                      # [not ANACONDA_ROCKET_ENABLE_GCC13 and not ANACONDA_ROCKET_ENABLE_GCC14]
+  - 15.2.1                      # [not ANACONDA_ROCKET_ENABLE_GCC13 and not ANACONDA_ROCKET_ENABLE_GCC14]
   - 14.3.0                      # [ANACONDA_ROCKET_ENABLE_GCC14]
   - 13.4.0                      # [ANACONDA_ROCKET_ENABLE_GCC13]
 gcc_maj_ver:
