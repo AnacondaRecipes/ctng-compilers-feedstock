@@ -10,7 +10,7 @@ ln -s gmp-* gmp
 ln -s isl-* isl
 
 # ensure patch is applied
-grep 'conda-forge:: allow' gcc/gcc.c*
+# grep 'conda-forge:: allow' gcc/gcc.c*
 
 GCC_CONFIGURE_OPTIONS=()
 

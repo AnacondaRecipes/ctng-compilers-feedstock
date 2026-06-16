@@ -48,8 +48,8 @@ source:
     sha256: c73799e9cf2ba6937eb0171d429afde186d4a45fe5b7abde6552c0c0d707fef7   # [gcc_version == "15.2.1"]
     fn: gcc-15.2.1-20260123.tar.xz
     patches:
-      - patches/0001-allow-commands-in-main-specfile.patch
-      - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13]
+      # - patches/0001-allow-commands-in-main-specfile.patch
+      # - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13]
       # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/raw/r8/SOURCES/
       - patches/devtoolset/gcc15-hack.patch
       - patches/devtoolset/gcc15-sparc-config-detection.patch
@@ -90,8 +90,8 @@ source:
       # - patches/devtoolset/gcc15-RHEL-153698.patch
       # - patches/devtoolset/gcc15-dg-ice-fixes.patch
       {% if cross_target_platform.startswith("linux-") %}
-      - patches/0003-add-ldl-to-libstdc___la_LDFLAGS.patch                          # [gcc_maj_ver != 13]
-      - patches/0004-Hardcode-HAVE_ALIGNED_ALLOC-1-in-libstdc-v3-configur.patch
+      # - patches/0003-add-ldl-to-libstdc___la_LDFLAGS.patch                          # [gcc_maj_ver != 13]
+      # - patches/0004-Hardcode-HAVE_ALIGNED_ALLOC-1-in-libstdc-v3-configur.patch
       {% else %}
       # for GCC 15: https://github.com/msys2/MINGW-packages/tree/f59921184b35858d4ceb91679578de0d62475cbf/mingw-w64-gcc
       # for GCC 14: https://github.com/msys2/MINGW-packages/tree/331bf945d21af562d228ed46bda21c8272d1e76e/mingw-w64-gcc
