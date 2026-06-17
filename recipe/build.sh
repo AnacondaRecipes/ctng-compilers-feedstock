@@ -81,6 +81,26 @@ touch -r isl-0.24/m4/ax_prog_cxx_for_build.m4 isl-0.24/m4/ax_prog_cc_for_build.m
 
 ./contrib/gcc_update --touch
 
+# CC=gcc
+# CXX=g++
+OPT_FLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -grecord-gcc-switches -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1  -fasynchronous-unwind-tables -fstack-clash-protection"
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=[123]//g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-D_FORTIFY_SOURCE=[123]//g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-U_FORTIFY_SOURCE//g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-flto=auto//g;s/-flto//g;s/-ffat-lto-objects//g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-m64//g;s/-m32//g;s/-m31//g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-mfpmath=sse/-mfpmath=sse -msse2/g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/ -pipe / /g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-fno-omit-frame-pointer//g;s/-mbackchain//g;s/-mno-omit-leaf-frame-pointer//g'`
+OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Werror=format-security/-Wformat-security/g'`
+OPT_FLAGS=`echo "$OPT_FLAGS" | sed -e 's/[[:blank:]]\+/ /g'`
+case "$OPT_FLAGS" in
+  *-fasynchronous-unwind-tables*)
+    sed -i -e 's/-fno-exceptions /-fno-exceptions -fno-asynchronous-unwind-tables /' \
+      libgcc/Makefile.in
+    ;;
+esac
+
 mkdir -p build
 cd build
 
@@ -100,7 +120,12 @@ if [[ "$TARGET" == *linux* ]]; then
   export LIBS="-Wl,--undefined=dladdr -ldl ${LIBS:-}"
 fi
 
-../configure \
+# --with-system-zlib
+CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
+	CXXFLAGS="`echo " $OPT_FLAGS " | sed 's/ -Wall / /g;s/ -fexceptions / /g' \
+		  | sed 's/ -Wformat-security / -Wformat -Wformat-security /'`" \
+	XCFLAGS="$OPT_FLAGS" TCFLAGS="$OPT_FLAGS" \
+  ../configure \
   --prefix="$PREFIX" \
   --with-slibdir="$PREFIX/lib" \
   --libdir="$PREFIX/lib" \
@@ -141,7 +166,7 @@ fi
 
 # Setting the CPU_COUNT=1 lets you see which job failed!
 # CPU_COUNT=1
-make -j${CPU_COUNT} LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now
+make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now
 
 echo
 echo
