@@ -162,6 +162,7 @@ CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
   --enable-linker-build-id \
   --disable-libunwind-exceptions \
   --enable-checking=release \
+  --enable-target-optspace=no \
   "${GCC_CONFIGURE_OPTIONS[@]}"
 
 # Setting the CPU_COUNT=1 lets you see which job failed!
