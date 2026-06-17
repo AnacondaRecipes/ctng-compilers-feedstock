@@ -122,6 +122,8 @@ if [[ "$TARGET" == *linux* ]]; then
 fi
 
 # --with-system-zlib
+# --with-gcc-major-version-only. We don't use this because it breaks our install scripts.
+# WOuld need to investigate if we can enable that.
 CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
 	CXXFLAGS="`echo " $OPT_FLAGS " | sed 's/ -Wall / /g;s/ -fexceptions / /g' \
 		  | sed 's/ -Wformat-security / -Wformat -Wformat-security /'`" \
@@ -153,7 +155,6 @@ CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
   --with-native-system-header-dir=${NATIVE_SYSTEM_HEADER_DIR} \
   --with-gxx-include-dir="${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/include/c++" \
   --enable-initfini-array \
-  --with-gcc-major-version-only \
   --enable-host-pie \
   --enable-host-bind-now \
   --enable-gnu-indirect-function \
