@@ -51,7 +51,7 @@ source:
     sha256: c73799e9cf2ba6937eb0171d429afde186d4a45fe5b7abde6552c0c0d707fef7   # [gcc_version == "15.2.1"]
     fn: gcc-15.2.1-20260123.tar.xz
     patches:
-      # - patches/0001-allow-commands-in-main-specfile.patch
+      - patches/0001-allow-commands-in-main-specfile.patch
       # - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13]
       # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/raw/r8/SOURCES/
       - patches/devtoolset/gcc15-hack.patch
