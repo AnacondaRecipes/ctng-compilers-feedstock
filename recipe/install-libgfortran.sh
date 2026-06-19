@@ -17,9 +17,12 @@ fi
 install -Dm644 $SRC_DIR/COPYING.RUNTIME \
         ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
 
+# TODO: Create a libgfortran-devel package.
+mkdir -p ${PREFIX}/lib/gcc/${triplet}/${gcc_version}
+
 # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L390
 cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared80.a \
-  ${PREFIX}/lib/libgfortran_nonshared.a
+  ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgfortran_nonshared.a
 
 if [[ "$target_platform" == 'linux-64' ]]; then
   oformat='OUTPUT_FORMAT(elf64-x86-64)'
@@ -35,4 +38,4 @@ echo "/* GNU ld script
    Use the shared library, but some functions are only in
    the static library, so try that secondarily.  */
 ${oformat}
-INPUT ( ${PREFIX}/lib/libgfortran.so.5 -lgfortran_nonshared )" > ${PREFIX}/lib/libgfortran.so
+INPUT ( ${PREFIX}/lib/libgfortran.so.5 -lgfortran_nonshared )" > ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgfortran.so
