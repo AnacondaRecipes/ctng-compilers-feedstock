@@ -81,18 +81,4 @@ fi
 
 rm -f ${PREFIX}/share/info/dir
 
-if [[ "$target_platform" == 'linux-64' ]]; then
-  oformat='OUTPUT_FORMAT(elf64-x86-64)'
-elif [[ "$target_platform" == 'linux-aarch64' ]]; then
-  oformat='OUTPUT_FORMAT(elf64-littleaarch64)'
-else
-  echo "Unknown platform"
-  exit 1
-fi
-
 rm -f ${PREFIX}/lib/libgcc_s.so
-echo "/* GNU ld script
-   Use the shared library, but some functions are only in
-   the static library, so try that secondarily.  */
-${oformat}
-GROUP ( ${PREFIX}/lib/libgcc_s.so.1 libgcc.a )" > ${PREFIX}/lib/libgcc_s.so
