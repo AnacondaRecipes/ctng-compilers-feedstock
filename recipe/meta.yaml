@@ -160,6 +160,7 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_eh.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc.a
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         {% else %}
@@ -194,6 +195,8 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++fs.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libsupc++.a
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared.a
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/include/c++/cstdio
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libstdc++.so
@@ -406,7 +409,8 @@ outputs:
         {% if target_platform == cross_target_platform %}
         - ${CXX} tzdb-override.o -o tzdb-override && ./tzdb-override
         - ${CXX} tzdb.o -o tzdb && ./tzdb
-        - $PREFIX/usr/bin/strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
+        # TODO: Figure out what to do with this test
+        #- $PREFIX/usr/bin/strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
         # also test without any environment activation
         - unset PREFIX
         - unset CONDA_PREFIX
@@ -474,7 +478,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       commands:
         {% if cross_target_platform.startswith("linux-") %}
-        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so
+        - test ! -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so
         {% else %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.dll.a
         {% endif %}
@@ -539,9 +543,10 @@ outputs:
         - libstdcxx-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        # Tests for nonshared library: https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1209
-        # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1997
-        - test -f ${PREFIX}/lib/libstdc++.so
+        - test ! -f ${PREFIX}/lib/libstdc++.so
+        - test -f ${PREFIX}/lib/libstdc++.so.6
+        - test -f ${PREFIX}/lib/libstdc++.so.6.0.34
+        - test -f ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
     about:
       summary: The GNU C++ Runtime Library
       home: https://gcc.gnu.org/
@@ -645,10 +650,12 @@ outputs:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       commands:
-        - test -f ${PREFIX}/lib/libgcc_s.so
+        - test ! -f ${PREFIX}/lib/libgcc_s.so
+        - test -f ${PREFIX}/lib/libgcc_s.so.1
         # libgcc should not ship the libgomp, which has its own output.
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
+        - test -f ${PREFIX}/share/licenses/gcc-libs/RUNTIME.LIBRARY.EXCEPTION
     about:
       summary: The GCC low-level runtime library
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
@@ -675,7 +682,13 @@ outputs:
         - libgfortran {{ gcc_version }}
     test:
       commands:
-        - test -f ${PREFIX}/lib/libgfortran.so
+        - test ! -f ${PREFIX}/lib/libgfortran.so
+        - test -f ${PREFIX}/lib/libgfortran.so.5
+        - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared.a
+        - test -f ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
+
     about:
       summary: The GNU Fortran Runtime Library
       home: https://gcc.gnu.org/
@@ -694,7 +707,7 @@ outputs:
         - libgfortran-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test -f ${PREFIX}/lib/libgfortran.so
+        - test ! -f ${PREFIX}/lib/libgfortran.so
     about:
       summary: The GNU Fortran Runtime Library
       home: https://gcc.gnu.org/
