@@ -28,3 +28,5 @@ find ${PREFIX}/lib -name "*\.la" -exec rm -rf {} -v \;
 install -Dm644 ${SRC_DIR}/COPYING.RUNTIME \
         ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
 
+# We don't ship this one in the devtoolset.
+rm -v ${PREFIX}/lib/libstdc++.so
