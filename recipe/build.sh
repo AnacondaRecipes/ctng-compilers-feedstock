@@ -148,8 +148,6 @@ if [[ "$TARGET" == *linux* ]]; then
   export LIBS="-Wl,--undefined=dladdr -ldl ${LIBS:-}"
 fi
 
-GCC_CONFIGURE_OPTIONS+=(--disable-bootstrap)
-
 if [[ "$gcc_flavor" == "manylinux" ]]; then
   GCC_CONFIGURE_OPTIONS+=(--enable-initfini-array)
   GCC_CONFIGURE_OPTIONS+=(--enable-host-pie)
