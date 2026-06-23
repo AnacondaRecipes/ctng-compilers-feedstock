@@ -296,6 +296,8 @@ outputs:
     script: install-symlinks.sh
     build:
       skip: true  # [target_platform != cross_target_platform]
+      script_env:
+        - PACKAGE_NAME_PREFIX={{ name_prefix }}
       track_features:            # [not with_conda_specs]
         - gcc_no_conda_specs     # [not with_conda_specs]
     requirements:
@@ -440,6 +442,8 @@ outputs:
     script: install-symlinks.sh
     build:
       skip: true  # [target_platform != cross_target_platform]
+      script_env:
+        - PACKAGE_NAME_PREFIX={{ name_prefix }}
     requirements:
       host:
         - {{ pin_subpackage(name_prefix ~ "gxx_impl_" ~ target_platform, exact=True) }}
@@ -516,6 +520,8 @@ outputs:
     script: install-symlinks.sh
     build:
       skip: true  # [target_platform != cross_target_platform]
+      script_env:
+        - PACKAGE_NAME_PREFIX={{ name_prefix }}
     requirements:
       host:
         - {{ name_prefix }}gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
