@@ -19,37 +19,39 @@ mkdir -p ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}
 mkdir -p ${PREFIX}/${CHOST}/lib
 
 if [[ "$target_platform" == "$cross_target_platform" ]]; then
-    mv $PREFIX/lib/lib*.a ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+    mv -v $PREFIX/lib/lib*.a ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
     if [[ "$target_platform" == linux-* ]]; then
-        mv ${PREFIX}/lib/libstdc++.so* ${PREFIX}/${CHOST}/lib
+        mv -v ${PREFIX}/lib/libstdc++.so* ${PREFIX}/${CHOST}/lib
     else
-        rm ${PREFIX}/bin/libstdc++*.dll
+        rm -v ${PREFIX}/bin/libstdc++*.dll
     fi
 else
-    mv $PREFIX/${CHOST}/lib/lib*.a ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+    mv -v $PREFIX/${CHOST}/lib/lib*.a ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
 fi
 
 popd
 
-# https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L390
-cp -v -a ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
-  ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++_nonshared.a
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L390
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
+    ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++_nonshared.a
 
-if [[ "$target_platform" == 'linux-64' ]]; then
-  oformat='OUTPUT_FORMAT(elf64-x86-64)'
-elif [[ "$target_platform" == 'linux-aarch64' ]]; then
-  oformat='OUTPUT_FORMAT(elf64-littleaarch64)'
-else
-  echo "Unknown platform"
-  exit 1
+  if [[ "$target_platform" == 'linux-64' ]]; then
+    oformat='OUTPUT_FORMAT(elf64-x86-64)'
+  elif [[ "$target_platform" == 'linux-aarch64' ]]; then
+    oformat='OUTPUT_FORMAT(elf64-littleaarch64)'
+  else
+    echo "Unknown platform"
+    exit 1
+  fi
+
+  libstdcxx_so="${PREFIX}/lib/libstdc++.so.6"
+  libstdcxx_so_link="INPUT ( ${libstdcxx_so} -lstdc++_nonshared AS_NEEDED (${libstdcxx_so}) )"
+
+  rm -v -f ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so
+  echo "/* GNU ld script
+    Use the shared library, but some functions are only in
+    the static library, so try that secondarily.  */
+  ${oformat}
+  ${libstdcxx_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so
 fi
-
-libstdcxx_so="${PREFIX}/lib/libstdc++.so.6"
-libstdcxx_so_link="INPUT ( ${libstdcxx_so} -lstdc++_nonshared AS_NEEDED (${libstdcxx_so}) )"
-
-rm -v -f ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so
-echo "/* GNU ld script
-   Use the shared library, but some functions are only in
-   the static library, so try that secondarily.  */
-${oformat}
-${libstdcxx_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so

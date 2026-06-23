@@ -44,3 +44,6 @@ c_stdlib_version:               # [win]
 with_conda_specs:
   - true
   - false
+gcc_flavor:
+  - main
+  - manylinux

@@ -81,29 +81,56 @@ touch -r isl-0.24/m4/ax_prog_cxx_for_build.m4 isl-0.24/m4/ax_prog_cc_for_build.m
 
 ./contrib/gcc_update --touch
 
-# CC=gcc
-# CXX=g++
-# -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1
-OPT_FLAGS="-O2 -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -grecord-gcc-switches -fasynchronous-unwind-tables -fstack-clash-protection"
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=[123]//g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-D_FORTIFY_SOURCE=[123]//g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-U_FORTIFY_SOURCE//g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-flto=auto//g;s/-flto//g;s/-ffat-lto-objects//g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-m64//g;s/-m32//g;s/-m31//g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-mfpmath=sse/-mfpmath=sse -msse2/g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/ -pipe / /g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-fno-omit-frame-pointer//g;s/-mbackchain//g;s/-mno-omit-leaf-frame-pointer//g'`
-OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Werror=format-security/-Wformat-security/g'`
-OPT_FLAGS=`echo "$OPT_FLAGS" | sed -e 's/[[:blank:]]\+/ /g'`
-case "$OPT_FLAGS" in
-  *-fasynchronous-unwind-tables*)
-    sed -i -e 's/-fno-exceptions /-fno-exceptions -fno-asynchronous-unwind-tables /' \
-      libgcc/Makefile.in
-    ;;
-esac
+OPT_FLAGS=""
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1
+  OPT_FLAGS="-O2 -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -grecord-gcc-switches -fasynchronous-unwind-tables -fstack-clash-protection"
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=[123]//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-D_FORTIFY_SOURCE=[123]//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-U_FORTIFY_SOURCE//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-flto=auto//g;s/-flto//g;s/-ffat-lto-objects//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-m64//g;s/-m32//g;s/-m31//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-mfpmath=sse/-mfpmath=sse -msse2/g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/ -pipe / /g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-fno-omit-frame-pointer//g;s/-mbackchain//g;s/-mno-omit-leaf-frame-pointer//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Werror=format-security/-Wformat-security/g'`
+  OPT_FLAGS=`echo "$OPT_FLAGS" | sed -e 's/[[:blank:]]\+/ /g'`
+  case "$OPT_FLAGS" in
+    *-fasynchronous-unwind-tables*)
+      sed -i -e 's/-fno-exceptions /-fno-exceptions -fno-asynchronous-unwind-tables /' \
+        libgcc/Makefile.in
+      ;;
+  esac
+fi
 
 mkdir -p build
 cd build
+
+GCC_CONFIGURE_OPTIONS+=(--prefix="$PREFIX")
+GCC_CONFIGURE_OPTIONS+=(--with-slibdir="$PREFIX/lib")
+GCC_CONFIGURE_OPTIONS+=(--libdir="$PREFIX/lib")
+GCC_CONFIGURE_OPTIONS+=(--mandir="$PREFIX/man")
+GCC_CONFIGURE_OPTIONS+=(--build=$BUILD)
+GCC_CONFIGURE_OPTIONS+=(--host=$HOST)
+GCC_CONFIGURE_OPTIONS+=(--target=$TARGET)
+GCC_CONFIGURE_OPTIONS+=(--enable-languages=c,c++,fortran,objc,obj-c++)
+GCC_CONFIGURE_OPTIONS+=(--enable-__cxa_atexit)
+GCC_CONFIGURE_OPTIONS+=(--disable-libmudflap)
+GCC_CONFIGURE_OPTIONS+=(--enable-libgomp)
+GCC_CONFIGURE_OPTIONS+=(--disable-libssp)
+GCC_CONFIGURE_OPTIONS+=(--enable-libquadmath)
+GCC_CONFIGURE_OPTIONS+=(--enable-libquadmath-support)
+GCC_CONFIGURE_OPTIONS+=(--enable-lto)
+GCC_CONFIGURE_OPTIONS+=(--enable-target-optspace)
+GCC_CONFIGURE_OPTIONS+=(--enable-plugin)
+GCC_CONFIGURE_OPTIONS+=(--enable-gold)
+GCC_CONFIGURE_OPTIONS+=(--disable-nls)
+GCC_CONFIGURE_OPTIONS+=(--disable-multilib)
+GCC_CONFIGURE_OPTIONS+=(--enable-long-long)
+GCC_CONFIGURE_OPTIONS+=(--with-sysroot=${SYSROOT_DIR})
+GCC_CONFIGURE_OPTIONS+=(--with-build-sysroot=${BUILD_PREFIX}/${TARGET}/sysroot)
+GCC_CONFIGURE_OPTIONS+=(--with-native-system-header-dir=${NATIVE_SYSTEM_HEADER_DIR})
+GCC_CONFIGURE_OPTIONS+=(--with-gxx-include-dir="${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/include/c++")
 
 # We need to explicitly set the gxx include dir because previously
 # with ct-ng, native build was not considered native because
@@ -121,99 +148,79 @@ if [[ "$TARGET" == *linux* ]]; then
   export LIBS="-Wl,--undefined=dladdr -ldl ${LIBS:-}"
 fi
 
-# --with-system-zlib
-# --with-gcc-major-version-only. We don't use this because it breaks our install scripts.
-# WOuld need to investigate if we can enable that.
+GCC_CONFIGURE_OPTIONS+=(--disable-bootstrap)
+
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  GCC_CONFIGURE_OPTIONS+=(--enable-initfini-array)
+  GCC_CONFIGURE_OPTIONS+=(--enable-host-pie)
+  GCC_CONFIGURE_OPTIONS+=(--enable-host-bind-now)
+  GCC_CONFIGURE_OPTIONS+=(--enable-gnu-indirect-function)
+  GCC_CONFIGURE_OPTIONS+=(--with-linker-hash-style=gnu)
+  GCC_CONFIGURE_OPTIONS+=(--enable-libstdcxx-backtrace)
+  GCC_CONFIGURE_OPTIONS+=(--enable-gnu-unique-object)
+  GCC_CONFIGURE_OPTIONS+=(--enable-linker-build-id)
+  GCC_CONFIGURE_OPTIONS+=(--disable-libunwind-exceptions)
+  GCC_CONFIGURE_OPTIONS+=(--enable-checking=release)
+  GCC_CONFIGURE_OPTIONS+=(--enable-target-optspace=no)
+  # --with-system-zlib
+  # We don't use this because it breaks our install scripts.
+  # Would need to investigate if we can enable that.
+  # --with-gcc-major-version-only.
+fi
+
 CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
 	CXXFLAGS="`echo " $OPT_FLAGS " | sed 's/ -Wall / /g;s/ -fexceptions / /g' \
 		  | sed 's/ -Wformat-security / -Wformat -Wformat-security /'`" \
 	XCFLAGS="$OPT_FLAGS" TCFLAGS="$OPT_FLAGS" \
   ../configure \
-  --prefix="$PREFIX" \
-  --with-slibdir="$PREFIX/lib" \
-  --libdir="$PREFIX/lib" \
-  --mandir="$PREFIX/man" \
-  --build=$BUILD \
-  --host=$HOST \
-  --target=$TARGET \
-  --enable-languages=c,c++,fortran,objc,obj-c++ \
-  --enable-__cxa_atexit \
-  --disable-libmudflap \
-  --enable-libgomp \
-  --disable-libssp \
-  --enable-libquadmath \
-  --enable-libquadmath-support \
-  --enable-lto \
-  --enable-target-optspace \
-  --enable-plugin \
-  --enable-gold \
-  --disable-nls \
-  --disable-multilib \
-  --enable-long-long \
-  --with-sysroot=${SYSROOT_DIR} \
-  --with-build-sysroot=${BUILD_PREFIX}/${TARGET}/sysroot \
-  --with-native-system-header-dir=${NATIVE_SYSTEM_HEADER_DIR} \
-  --with-gxx-include-dir="${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/include/c++" \
-  --enable-initfini-array \
-  --enable-host-pie \
-  --enable-host-bind-now \
-  --enable-gnu-indirect-function \
-  --with-linker-hash-style=gnu \
-  --enable-libstdcxx-backtrace \
-  --enable-gnu-unique-object \
-  --enable-linker-build-id \
-  --disable-libunwind-exceptions \
-  --enable-checking=release \
-  --enable-target-optspace=no \
   "${GCC_CONFIGURE_OPTIONS[@]}"
 
 # Setting the CPU_COUNT=1 lets you see which job failed!
 # CPU_COUNT=1
-make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now
+else
+  make -j${CPU_COUNT}
+fi
 
-echo
-echo
-echo "Testing jcjcjcjcjc"
-echo "++++++++++++++++++"
-echo
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  mkdir -p libstdc++_compat_test
+  cd libstdc++_compat_test
 
-mkdir -p libstdc++_compat_test
-cd libstdc++_compat_test
+  readelf -Ws /usr/lib64/libstdc++.so.6 \
+  | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+  | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+  | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+  | LC_ALL=C sort -u > system.abilist
 
+  # This is in the "build folder"
+  readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
+  | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+  | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+  | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+  | LC_ALL=C sort -u > vanilla.abilist
 
-readelf -Ws /usr/lib64/libstdc++.so.6 \
-| sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
-| awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
-| sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
-| LC_ALL=C sort -u > system.abilist
+  diff -up system.abilist vanilla.abilist \
+  | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
 
-# This is in the "build folder"
-readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
-| sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
-| awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
-| sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
-| LC_ALL=C sort -u > vanilla.abilist
+  ${SRC_DIR}/build/gcc/xgcc \
+      -B ${SRC_DIR}/build/gcc \
+      -shared \
+      -o libstdc++_nonshared.so \
+      -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
+      -Wl,--no-whole-archive /usr/lib64/libstdc++.so.6
 
-diff -up system.abilist vanilla.abilist \
-| awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+  readelf -Ws libstdc++_nonshared.so \
+  | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+  | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+  | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+  | LC_ALL=C sort -u > nonshared.abilist
 
-${SRC_DIR}/build/gcc/xgcc \
-    -B ${SRC_DIR}/build/gcc \
-    -shared \
-    -o libstdc++_nonshared.so \
-    -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
-    -Wl,--no-whole-archive /usr/lib64/libstdc++.so.6
-
-readelf -Ws libstdc++_nonshared.so \
-| sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
-| awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
-| sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
-| LC_ALL=C sort -u > nonshared.abilist
-
-echo ====================NONSHARED=========================
-ldd -d -r ./libstdc++_nonshared.so || :
-ldd -u ./libstdc++_nonshared.so || :
-diff -up system2vanilla.abilist.diff nonshared.abilist || :
-readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a | grep HIDDEN.*UND | grep -v __dso_handle || :
-echo ====================NONSHARED END=====================
-rm -f libstdc++_nonshared.so
+  echo ====================NONSHARED=========================
+  ldd -d -r ./libstdc++_nonshared.so || :
+  ldd -u ./libstdc++_nonshared.so || :
+  diff -up system2vanilla.abilist.diff nonshared.abilist || :
+  readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a | grep HIDDEN.*UND | grep -v __dso_handle || :
+  echo ====================NONSHARED END=====================
+  rm -f libstdc++_nonshared.so
+fi

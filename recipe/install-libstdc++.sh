@@ -20,13 +20,15 @@ mkdir -p ${PREFIX}/lib
 #mv ${PREFIX}/${CHOST}/lib/* ${PREFIX}/lib
 
 # no static libs
-find ${PREFIX}/lib -name "*\.a" -exec rm -rf {} -v \;
+find ${PREFIX}/lib -name "*\.a" -exec rm -v -rf {} -v \;
 # no libtool files
-find ${PREFIX}/lib -name "*\.la" -exec rm -rf {} -v \;
+find ${PREFIX}/lib -name "*\.la" -exec rm -v -rf {} -v \;
 
 # Install Runtime Library Exception
 install -Dm644 ${SRC_DIR}/COPYING.RUNTIME \
         ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
 
-# We don't ship this one in the devtoolset.
-rm -v ${PREFIX}/lib/libstdc++.so
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # We don't ship this one in the devtoolset.
+  rm -v ${PREFIX}/lib/libstdc++.so
+fi

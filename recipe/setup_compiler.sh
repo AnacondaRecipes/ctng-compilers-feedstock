@@ -32,6 +32,7 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
       ${extra_pkgs[@]}
 fi
 
+# export PATH=/opt/rh/gcc-toolset-15/root/usr/bin:$SRC_DIR/cf-compilers/bin:$PATH
 export PATH=$SRC_DIR/cf-compilers/bin:$PATH
 export BUILD_PREFIX=$SRC_DIR/cf-compilers
 

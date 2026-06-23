@@ -18,6 +18,12 @@
 {% set cross_target_platform = "linux-64" %}
 {% endif %}
 
+{% if gcc_flavor == "main" %}
+{% set name_prefix = "" %}
+{% else %}
+{% set name_prefix = "manylinux-" %}
+{% endif %}
+
 package:
   name: gcc_compilers
   version: {{ version }}
@@ -27,8 +33,12 @@ package:
 # * Upstream build: https://koji.rockylinux.org/koji/buildinfo?buildID=120333
 # * gcc source archive: https://sources.build.resf.org/c73799e9cf2ba6937eb0171d429afde186d4a45fe5b7abde6552c0c0d707fef7
 # * https://rockylinux.pkgs.org/8/rockylinux-appstream-aarch64/gcc-toolset-15-runtime-15.0-9.el8_10.aarch64.rpm.html
+# * Tests for nonshared library: https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1209
+# * https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1997
 
 # TODO: Compare list of files produced/installed
+
+# https://package-build.anacondaconnect.com/v1/graph/c70a112b-4da8-4b5d-975e-5129a04a411f
 
 source:
   # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/tree/r8
@@ -52,7 +62,7 @@ source:
     fn: gcc-15.2.1-20260123.tar.xz
     patches:
       - patches/0001-allow-commands-in-main-specfile.patch
-      # - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13]
+      - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13 and gcc_flavor != "manylinux"]
       # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/raw/r8/SOURCES/
       - patches/devtoolset/gcc15-hack.patch
       - patches/devtoolset/gcc15-sparc-config-detection.patch
@@ -93,8 +103,8 @@ source:
       # - patches/devtoolset/gcc15-RHEL-153698.patch
       # - patches/devtoolset/gcc15-dg-ice-fixes.patch
       {% if cross_target_platform.startswith("linux-") %}
-      # - patches/0003-add-ldl-to-libstdc___la_LDFLAGS.patch                          # [gcc_maj_ver != 13]
-      # - patches/0004-Hardcode-HAVE_ALIGNED_ALLOC-1-in-libstdc-v3-configur.patch
+      - patches/0003-add-ldl-to-libstdc___la_LDFLAGS.patch                          # [gcc_maj_ver != 13 and gcc_flavor != "manylinux"]
+      - patches/0004-Hardcode-HAVE_ALIGNED_ALLOC-1-in-libstdc-v3-configur.patch     # [gcc_flavor != "manylinux"]
       {% else %}
       # for GCC 15: https://github.com/msys2/MINGW-packages/tree/f59921184b35858d4ceb91679578de0d62475cbf/mingw-w64-gcc
       # for GCC 14: https://github.com/msys2/MINGW-packages/tree/331bf945d21af562d228ed46bda21c8272d1e76e/mingw-w64-gcc
@@ -120,23 +130,23 @@ source:
       - patches/mingw/{{ gcc_maj_ver }}/9002-native-tls.patch                                                   # [gcc_maj_ver == 15]
       {% endif %}
 
-build:
-  number: {{ build_num }}
-  skip: True  # [win]
-  skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
-  detect_binary_files_with_prefix: false
-  ignore_run_exports_from:
-    - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+# build:
+#   number: {{ build_num }}
+#   skip: True  # [win]
+#   skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
+#   detect_binary_files_with_prefix: false
+#   ignore_run_exports_from:
+#     - {{ cross_target_stdlib }}_{{ cross_target_platform }}
 
-requirements:
-  build:
-    # Build dependencies are installed in setup_compilers.sh due to
-    # conda-build bugs
-  host:
-    - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
+# requirements:
+#   build:
+#     # Build dependencies are installed in setup_compilers.sh due to
+#     # conda-build bugs
+#   host:
+#     - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
 
 outputs:
-  - name: libgcc-devel_{{ cross_target_platform }}
+  - name: {{ name_prefix }}libgcc-devel_{{ cross_target_platform }}
     script: install-libgcc-devel.sh
     build:
       noarch: generic
@@ -171,7 +181,7 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libstdcxx-devel_{{ cross_target_platform }}
+  - name: {{ name_prefix }}libstdcxx-devel_{{ cross_target_platform }}
     script: install-libstdc++-devel.sh
     build:
       noarch: generic
@@ -195,8 +205,10 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++fs.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libsupc++.a
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared.a
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared.a  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/include/c++/cstdio
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libstdc++.so
@@ -208,7 +220,7 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: gcc_impl_{{ cross_target_platform }}
+  - name: {{ name_prefix }}gcc_impl_{{ cross_target_platform }}
     script: install-gcc.sh
     build:
       number: {{ build_num }}
@@ -221,24 +233,24 @@ outputs:
       build:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
-        - {{ pin_subpackage("libgomp", exact=True) }}               # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libstdcxx", exact=True) }}             # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libgcc", exact=True) }}                # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libgfortran" ~ libgfortran_soname, exact=True) }}  # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libsanitizer", exact=True) }}          # [target_platform == cross_target_platform and not win]
+        - {{ pin_subpackage(name_prefix ~ "libgomp", exact=True) }}               # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}             # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}                # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libgfortran" ~ libgfortran_soname, exact=True) }}  # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libsanitizer", exact=True) }}          # [target_platform == cross_target_platform and not win]
       run:
         - binutils_impl_{{ cross_target_platform }} >={{ binutils_version }}
-        - {{ pin_subpackage("libgcc-devel_" ~ cross_target_platform, exact=True) }}
-        - {{ pin_subpackage("libsanitizer", exact=True) }}      # [target_platform == cross_target_platform and not win]
+        - {{ pin_subpackage(name_prefix ~ "libgcc-devel_" ~ cross_target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libsanitizer", exact=True) }}      # [target_platform == cross_target_platform and not win]
         # libstdcxx is a runtime dep of gcc because LTO requires it.
-        - {{ pin_subpackage("libstdcxx", exact=True) }}         # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libgcc", exact=True) }}            # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libgomp", exact=True) }}           # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}         # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}            # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libgomp", exact=True) }}           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
     run_exports:
       # impose this requirement across the build/host boundary
       strong:
-        - libgcc >={{ gcc_version }}
+        - {{ name_prefix }}libgcc >={{ gcc_version }}
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -278,7 +290,7 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: gcc
+  - name: {{ name_prefix }}gcc
     script: install-symlinks.sh
     build:
       skip: true  # [target_platform != cross_target_platform]
@@ -286,10 +298,10 @@ outputs:
         - gcc_no_conda_specs     # [not with_conda_specs]
     requirements:
       host:
-        - {{ pin_subpackage("gcc_impl_" ~ target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ target_platform, exact=True) }}
       run:
-        - {{ pin_subpackage("gcc_impl_" ~ target_platform, exact=True) }}
-        - conda-gcc-specs        # [with_conda_specs]
+        - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ target_platform, exact=True) }}
+        - {{ name_prefix }}conda-gcc-specs        # [with_conda_specs]
     test:
       commands:
         - ${PREFIX}/bin/gcc -v
@@ -300,19 +312,19 @@ outputs:
       license: BSD-3-Clause
       license_file: LICENSE
 
-  - name: gcc-no-conda-specs
+  - name: {{ name_prefix }}gcc-no-conda-specs
     build:
       skip: true   # [with_conda_specs]
     requirements:
       run:
-        - gcc
+        - {{ name_prefix }}gcc
       run_constrained:
-        - conda-gcc-specs <0.0a0
+        - {{ name_prefix }}conda-gcc-specs <0.0a0
     test:
       commands:
         - gcc --version
 
-  - name: conda-gcc-specs
+  - name: {{ name_prefix }}conda-gcc-specs
     script: install-conda-specs.sh
     build:
       number: {{ build_num }}
@@ -321,7 +333,7 @@ outputs:
     requirements:
       build:
       run:
-        - {{ pin_subpackage("gcc_impl_" ~ cross_target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ cross_target_platform, exact=True) }}
     test:
       files:
         - tests
@@ -361,7 +373,7 @@ outputs:
       license: GPL-3.0-only WITH GCC-exception-3.1
       doc_url: https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html
 
-  - name: gxx_impl_{{ cross_target_platform }}
+  - name: {{ name_prefix }}gxx_impl_{{ cross_target_platform }}
     script: install-g++.sh
     build:
       number: {{ build_num }}
@@ -375,19 +387,19 @@ outputs:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
         # For cpp and crt{i,n}.o
-        - {{ pin_subpackage("gcc_impl_" ~ cross_target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ cross_target_platform, exact=True) }}
       run:
         # For cpp and crt{i,n}.o
-        - {{ pin_subpackage("gcc_impl_" ~ cross_target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ cross_target_platform, exact=True) }}
         # not needed due to pinning above but marks this build as using the new sysroots
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
-        - {{ pin_subpackage("libstdcxx-devel_" ~ cross_target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libstdcxx-devel_" ~ cross_target_platform, exact=True) }}
         # for C++20 chrono support
         - tzdata
     run_exports:
       # impose this requirement across the build/host boundary
       strong:
-        - libstdcxx >={{ gcc_version }}
+        - {{ name_prefix }}libstdcxx >={{ gcc_version }}
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -422,17 +434,17 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: gxx
+  - name: {{ name_prefix }}gxx
     script: install-symlinks.sh
     build:
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
-        - {{ pin_subpackage("gxx_impl_" ~ target_platform, exact=True) }}
-        - {{ pin_subpackage("gcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gxx_impl_" ~ target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gcc", exact=True) }}
       run:
-        - {{ pin_subpackage("gxx_impl_" ~ target_platform, exact=True) }}
-        - {{ pin_subpackage("gcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gxx_impl_" ~ target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gcc", exact=True) }}
     test:
       commands:
         - ${PREFIX}/bin/g++ -v
@@ -443,7 +455,7 @@ outputs:
       license: BSD-3-Clause
       license_file: LICENSE
 
-  - name: gfortran_impl_{{ cross_target_platform }}
+  - name: {{ name_prefix }}gfortran_impl_{{ cross_target_platform }}
     script: install-gfortran.sh
     build:
       number: {{ build_num }}
@@ -456,21 +468,21 @@ outputs:
       build:
       host:
         # For cpp and crt{i,n}.o
-        - {{ pin_subpackage("gcc_impl_" ~ cross_target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ cross_target_platform, exact=True) }}
         # not needed due to pinning above but marks this build as using the new sysroots
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       run:
         # For cpp and crt{i,n}.o
-        - {{ pin_subpackage("gcc_impl_" ~ cross_target_platform, exact=True) }}
-        - {{ pin_subpackage("libgfortran" ~ libgfortran_soname, exact=True) }}  # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libgcc", exact=True) }}                              # [target_platform == cross_target_platform]
-        - {{ pin_subpackage("libstdcxx", exact=True) }}                           # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ cross_target_platform, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgfortran" ~ libgfortran_soname, exact=True) }}  # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}                              # [target_platform == cross_target_platform]
+        - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}                           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
     run_exports:
       # impose this requirement across the build/host boundary
       strong:
-        - libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*
-        - libgcc >={{ gcc_version }}
+        - {{ name_prefix }}libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*
+        - {{ name_prefix }}libgcc >={{ gcc_version }}
     test:
       requires:
         - cmake >=3.11,<4  # [x86_64 or aarch64 or ppc64le]
@@ -478,7 +490,8 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       commands:
         {% if cross_target_platform.startswith("linux-") %}
-        - test ! -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so
+        - test ! -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
         {% else %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.dll.a
         {% endif %}
@@ -497,19 +510,19 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: gfortran
+  - name: {{ name_prefix }}gfortran
     script: install-symlinks.sh
     build:
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
-        - gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
-        - gcc_impl_{{ target_platform }} {{ gcc_version }}.*
-        - gcc {{ gcc_version }}.*
+        - {{ name_prefix }}gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
+        - {{ name_prefix }}gcc_impl_{{ target_platform }} {{ gcc_version }}.*
+        - {{ name_prefix }}gcc {{ gcc_version }}.*
       run:
-        - gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
-        - gcc_impl_{{ target_platform }} {{ gcc_version }}.*
-        - gcc {{ gcc_version }}.*
+        - {{ name_prefix }}gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
+        - {{ name_prefix }}gcc_impl_{{ target_platform }} {{ gcc_version }}.*
+        - {{ name_prefix }}gcc {{ gcc_version }}.*
     test:
       commands:
         - ${PREFIX}/bin/gfortran -v
@@ -520,7 +533,7 @@ outputs:
       license: BSD-3-Clause
       license_file: LICENSE
 
-  - name: libstdcxx
+  - name: {{ name_prefix }}libstdcxx
     target: {{ cross_target_platform }}
     script: install-libstdc++.sh
     build:
@@ -535,15 +548,17 @@ outputs:
       build:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
-        - {{ pin_subpackage("libgcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
       run:
-        - {{ pin_subpackage("libgcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
       run_constrained:
         # avoid installing incompatible version of old name for this output
-        - libstdcxx-ng =={{ version }}=*_{{ build_num }}
+        - {{ name_prefix }}libstdcxx-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test ! -f ${PREFIX}/lib/libstdc++.so
+        - test ! -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so
+        - test -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/libstdc++.so.6
         - test -f ${PREFIX}/lib/libstdc++.so.6.0.34
         - test -f ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
@@ -552,7 +567,7 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libsanitizer
+  - name: {{ name_prefix }}libsanitizer
     target: {{ cross_target_platform }}
     script: install-libsanitizer.sh
     build:
@@ -562,7 +577,7 @@ outputs:
       missing_dso_whitelist:
         - "*"
       run_exports:
-        - libsanitizer {{ gcc_version }}
+        - {{ name_prefix }}libsanitizer {{ gcc_version }}
       overlinking_ignore_patterns:
         - "lib/libtsan.so.*"
         - "lib/libasan.so.*"
@@ -573,8 +588,8 @@ outputs:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run:
-        - {{ pin_subpackage("libgcc", exact=True) }}
-        - {{ pin_subpackage("libstdcxx", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
@@ -589,7 +604,7 @@ outputs:
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libgomp
+  - name: {{ name_prefix }}libgomp
     target: {{ cross_target_platform }}
     script: install-libgomp.sh
     build:
@@ -602,7 +617,7 @@ outputs:
         strong:
           - _openmp_mutex * *_gnu
           {% if cross_target_platform.startswith("win-") %}
-          - {{ pin_subpackage("libgomp", max_pin=None) }}
+          - {{ pin_subpackage(name_prefix ~ "libgomp", max_pin=None) }}
           {% endif %}
     requirements:
       build:
@@ -622,7 +637,7 @@ outputs:
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libgcc
+  - name: {{ name_prefix }}libgcc
     target: {{ cross_target_platform }}
     script: install-libgcc-no-gomp.sh
     build:
@@ -637,20 +652,21 @@ outputs:
     requirements:
       build:
       host:
-        - {{ pin_subpackage("libgomp", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgomp", exact=True) }}
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run:
         - _openmp_mutex * *_gnu
       run_constrained:
-        - {{ pin_subpackage("libgomp", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgomp", exact=True) }}
         - msys2-conda-epoch <0.0a0    # [win]
         # avoid installing incompatible version of old name for this output
-        - libgcc-ng =={{ version }}=*_{{ build_num }}
+        - {{ name_prefix }}libgcc-ng =={{ version }}=*_{{ build_num }}
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       commands:
-        - test ! -f ${PREFIX}/lib/libgcc_s.so
+        - test ! -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/libgcc_s.so.1
         # libgcc should not ship the libgomp, which has its own output.
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
@@ -661,7 +677,7 @@ outputs:
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libgfortran{{ libgfortran_soname }}
+  - name: {{ name_prefix }}libgfortran{{ libgfortran_soname }}
     target: {{ cross_target_platform }}
     script: install-libgfortran.sh
     build:
@@ -677,16 +693,19 @@ outputs:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       run:
-        - {{ pin_subpackage("libgcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
       run_constrained:
-        - libgfortran {{ gcc_version }}
+        - {{ name_prefix }}libgfortran {{ gcc_version }}
     test:
       commands:
-        - test ! -f ${PREFIX}/lib/libgfortran.so
+        - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/libgfortran.so.5
         - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared.a
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared.a  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared.a  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
 
     about:
@@ -694,26 +713,27 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libgfortran
+  - name: {{ name_prefix }}libgfortran
     target: {{ cross_target_platform }}
     build:
       skip: true   # [target_platform != cross_target_platform]
       number: {{ build_num }}
     requirements:
       run:
-        - {{ pin_subpackage('libgfortran' ~ libgfortran_soname, exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ 'libgfortran' ~ libgfortran_soname, exact=True) }}
       run_constrained:
         # avoid installing incompatible version of old name for this output
-        - libgfortran-ng =={{ version }}=*_{{ build_num }}
+        - {{ name_prefix }}libgfortran-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test ! -f ${PREFIX}/lib/libgfortran.so
+        - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
     about:
       summary: The GNU Fortran Runtime Library
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: gdb-pretty-printer
+  - name: {{ name_prefix }}gdb-pretty-printer
     version: {{ gcc_version }}
     script: install-gdb-pretty-printer.sh
     build:
@@ -721,14 +741,14 @@ outputs:
       skip: true
       number: {{ build_num }}
       ignore_run_exports:   # [linux]
-        - libstdcxx         # [linux]
+        - {{ name_prefix }}libstdcxx         # [linux]
     requirements:
       host:
         - python
       run:
         - python
         - gdb >= 16.3
-        - libstdcxx >={{ gcc_version }}
+        - {{ name_prefix }}libstdcxx >={{ gcc_version }}
     about:
       summary: GNU Compiler Collection Python Pretty Printers
       home: https://gcc.gnu.org/
@@ -737,19 +757,19 @@ outputs:
   # compatibility outputs for previous naming of the runtime libraries
   # with "-ng" suffix; for windows the suffix had never been introduced
   {% if not cross_target_platform.startswith("win-") %}
-  - name: libgcc-ng
+  - name: {{ name_prefix }}libgcc-ng
     target: {{ cross_target_platform }}
     build:
       number: {{ build_num }}
       skip: true    # [target_platform != cross_target_platform]
       run_exports:
         strong:
-          - libgcc
+          - {{ name_prefix}}libgcc
     requirements:
       host:
-        - {{ pin_subpackage("libgcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
       run:
-        - {{ pin_subpackage("libgcc", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -758,7 +778,7 @@ outputs:
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libstdcxx-ng
+  - name: {{ name_prefix }}libstdcxx-ng
     target: {{ cross_target_platform }}
     script: install-libstdc++.sh
     build:
@@ -766,12 +786,12 @@ outputs:
       skip: true   # [target_platform != cross_target_platform]
       run_exports:
         strong:
-          - libstdcxx
+          - {{ name_prefix }}libstdcxx
     requirements:
       host:
-        - {{ pin_subpackage("libstdcxx", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}
       run:
-        - {{ pin_subpackage("libstdcxx", exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -780,19 +800,19 @@ outputs:
       home: https://gcc.gnu.org/
       license: GPL-3.0-only WITH GCC-exception-3.1
 
-  - name: libgfortran-ng
+  - name: {{ name_prefix }}libgfortran-ng
     target: {{ cross_target_platform }}
     build:
       number: {{ build_num }}
       skip: true   # [target_platform != cross_target_platform]
       run_exports:
         strong:
-          - libgfortran
+          - {{ name_prefix }}libgfortran
     requirements:
       host:
-        - {{ pin_subpackage('libgfortran', exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ 'libgfortran', exact=True) }}
       run:
-        - {{ pin_subpackage('libgfortran', exact=True) }}
+        - {{ pin_subpackage(name_prefix ~ 'libgfortran', exact=True) }}
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"

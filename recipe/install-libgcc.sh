@@ -9,12 +9,12 @@ set -e -x
 
 pushd ${SRC_DIR}/build
 
-  if [[ "${PKG_NAME}" == "libgcc" ]]; then
+  if [[ "${PKG_NAME}" == "${name_prefix}libgcc" ]]; then
     make -C ${TARGET}/libgcc prefix=${PREFIX} install-shared
     if [[ "${TARGET}" == *mingw* ]]; then
       mv $PREFIX/lib/libgcc_s*.dll $PREFIX/bin
     fi
-  elif [[ "${PKG_NAME}" != "gcc_impl"* ]]; then
+  elif [[ "${PKG_NAME}" != "${name_prefix}gcc_impl"* ]]; then
     # when building a cross compiler, above make line will clobber $PREFIX/lib/libgcc_s.so.1
     # and fail after some point for some architectures. To avoid that, we copy manually
     pushd ${TARGET}/libgcc
@@ -61,14 +61,14 @@ popd
 
 mkdir -p ${PREFIX}/lib
 
-if [[ "${PKG_NAME}" != "gcc_impl"* ]]; then
+if [[ "${PKG_NAME}" != "${name_prefix}gcc_impl"* ]]; then
   # no static libs
-  find ${PREFIX}/lib -name "*\.a" -exec rm -rf {} \;
+  find ${PREFIX}/lib -name "*\.a" -exec rm -v -rf {} \;
 fi
 # no libtool files
-find ${PREFIX}/lib -name "*\.la" -exec rm -rf {} \;
+find ${PREFIX}/lib -name "*\.la" -exec rm --v rf {} \;
 
-if [[ "${PKG_NAME}" != gcc_impl* ]]; then
+if [[ "${PKG_NAME}" != ${name_prefix}gcc_impl* ]]; then
   # mv ${PREFIX}/${TARGET}/lib/* ${PREFIX}/lib
   # clean up empty folder
   rm -rf ${PREFIX}/lib/gcc
@@ -81,4 +81,6 @@ fi
 
 rm -f ${PREFIX}/share/info/dir
 
-rm -f ${PREFIX}/lib/libgcc_s.so
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  rm -f ${PREFIX}/lib/libgcc_s.so
+fi
