@@ -130,20 +130,20 @@ source:
       - patches/mingw/{{ gcc_maj_ver }}/9002-native-tls.patch                                                   # [gcc_maj_ver == 15]
       {% endif %}
 
-# build:
-#   number: {{ build_num }}
-#   skip: True  # [win]
-#   skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
-#   detect_binary_files_with_prefix: false
-#   ignore_run_exports_from:
-#     - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+build:
+  number: {{ build_num }}
+  skip: True  # [win]
+  skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
+  detect_binary_files_with_prefix: false
+  ignore_run_exports_from:
+    - {{ cross_target_stdlib }}_{{ cross_target_platform }}
 
-# requirements:
-#   build:
-#     # Build dependencies are installed in setup_compilers.sh due to
-#     # conda-build bugs
-#   host:
-#     - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
+requirements:
+  build:
+    # Build dependencies are installed in setup_compilers.sh due to
+    # conda-build bugs
+  host:
+    - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
 
 outputs:
   - name: {{ name_prefix }}libgcc-devel_{{ cross_target_platform }}
