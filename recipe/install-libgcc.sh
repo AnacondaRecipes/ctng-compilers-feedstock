@@ -66,7 +66,7 @@ if [[ "${PKG_NAME}" != "${PACKAGE_NAME_PREFIX}gcc_impl"* ]]; then
   find ${PREFIX}/lib -name "*\.a" -exec rm -v -rf {} \;
 fi
 # no libtool files
-find ${PREFIX}/lib -name "*\.la" -exec rm --v rf {} \;
+find ${PREFIX}/lib -name "*\.la" -exec rm -v rf {} \;
 
 if [[ "${PKG_NAME}" != ${PACKAGE_NAME_PREFIX}gcc_impl* ]]; then
   # mv ${PREFIX}/${TARGET}/lib/* ${PREFIX}/lib
