@@ -61,14 +61,14 @@ popd
 
 mkdir -p ${PREFIX}/lib
 
-if [[ "${PKG_NAME}" != "${name_prefix}gcc_impl"* ]]; then
+if [[ "${PKG_NAME}" != "${PACKAGE_NAME_PREFIX}gcc_impl"* ]]; then
   # no static libs
   find ${PREFIX}/lib -name "*\.a" -exec rm -v -rf {} \;
 fi
 # no libtool files
 find ${PREFIX}/lib -name "*\.la" -exec rm --v rf {} \;
 
-if [[ "${PKG_NAME}" != ${name_prefix}gcc_impl* ]]; then
+if [[ "${PKG_NAME}" != ${PACKAGE_NAME_PREFIX}gcc_impl* ]]; then
   # mv ${PREFIX}/${TARGET}/lib/* ${PREFIX}/lib
   # clean up empty folder
   rm -rf ${PREFIX}/lib/gcc

@@ -151,6 +151,8 @@ outputs:
     build:
       noarch: generic
       number: {{ libgcc_devel_build_num }}
+      script_env:
+        - PACKAGE_NAME_PREFIX={{ name_prefix }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -643,6 +645,8 @@ outputs:
     build:
       number: {{ build_num }}
       skip: true                # [target_platform != cross_target_platform]
+      script_env:
+        - PACKAGE_NAME_PREFIX={{ name_prefix }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
