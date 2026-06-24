@@ -20,8 +20,10 @@
 
 {% if gcc_flavor == "main" %}
 {% set name_prefix = "" %}
+{% set name_prefix_reverse = "manylinux-" %}
 {% else %}
 {% set name_prefix = "manylinux-" %}
+{% set name_prefix_reverse = "" %}
 {% endif %}
 
 package:
@@ -167,6 +169,8 @@ outputs:
       run:
         - __unix   # [unix]
         - __win    # [win]
+      run_constrained:
+        - {{name_prefix_reverse}}libgcc-devel_{{ cross_target_platform }} < 0.0a0
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
@@ -202,6 +206,8 @@ outputs:
       run:
         - __unix   # [unix]
         - __win    # [win]
+      run_constrained:
+        - {{name_prefix_reverse}}libstdcxx-devel_{{ cross_target_platform }} < 0.0a0
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
@@ -249,6 +255,8 @@ outputs:
         - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}            # [target_platform == cross_target_platform]
         - {{ pin_subpackage(name_prefix ~ "libgomp", exact=True) }}           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_constrained:
+        - {{ name_prefix_reverse }}gcc_impl_{{ cross_target_platform }} < 0.0a0
     run_exports:
       # impose this requirement across the build/host boundary
       strong:
@@ -306,6 +314,8 @@ outputs:
       run:
         - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ target_platform, exact=True) }}
         - {{ name_prefix }}conda-gcc-specs        # [with_conda_specs]
+      run_constrained:
+        - {{ name_prefix_reverse }}gcc < 0.0a0
     test:
       commands:
         - ${PREFIX}/bin/gcc -v
@@ -324,6 +334,7 @@ outputs:
         - {{ name_prefix }}gcc
       run_constrained:
         - {{ name_prefix }}conda-gcc-specs <0.0a0
+        - {{ name_prefix_reverse }}gcc-no-conda-specs<0.0a0
     test:
       commands:
         - gcc --version
@@ -338,6 +349,8 @@ outputs:
       build:
       run:
         - {{ pin_subpackage(name_prefix ~ "gcc_impl_" ~ cross_target_platform, exact=True) }}
+      run_constrained:
+        - {{ name_prefix_reverse }}conda-gcc-specs < 0.0a0
     test:
       files:
         - tests
@@ -400,6 +413,8 @@ outputs:
         - {{ pin_subpackage(name_prefix ~ "libstdcxx-devel_" ~ cross_target_platform, exact=True) }}
         # for C++20 chrono support
         - tzdata
+      run_constrained:
+        - {{ name_prefix_reverse }}gxx_impl_{{ cross_target_platform }} < 0.0a0
     run_exports:
       # impose this requirement across the build/host boundary
       strong:
@@ -451,6 +466,8 @@ outputs:
       run:
         - {{ pin_subpackage(name_prefix ~ "gxx_impl_" ~ target_platform, exact=True) }}
         - {{ pin_subpackage(name_prefix ~ "gcc", exact=True) }}
+      run_constrained:
+        - {{ name_prefix_reverse }}gxx < 0.0a0
     test:
       commands:
         - ${PREFIX}/bin/g++ -v
@@ -484,6 +501,8 @@ outputs:
         - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}                              # [target_platform == cross_target_platform]
         - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}                           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_constrained:
+        - {{ name_prefix_reverse }}gfortran_impl_{{ cross_target_platform }} < 0.0a0
     run_exports:
       # impose this requirement across the build/host boundary
       strong:
@@ -531,6 +550,8 @@ outputs:
         - {{ name_prefix }}gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
         - {{ name_prefix }}gcc_impl_{{ target_platform }} {{ gcc_version }}.*
         - {{ name_prefix }}gcc {{ gcc_version }}.*
+      run_constrained:
+        - {{ name_prefix_reverse }}gfortran < 0.0a0
     test:
       commands:
         - ${PREFIX}/bin/gfortran -v
@@ -562,6 +583,7 @@ outputs:
       run_constrained:
         # avoid installing incompatible version of old name for this output
         - {{ name_prefix }}libstdcxx-ng =={{ version }}=*_{{ build_num }}
+        - {{ name_prefix_reverse }}libstdcxx < 0.0a0
     test:
       commands:
         - test ! -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor == "manylinux"]
@@ -598,6 +620,8 @@ outputs:
       run:
         - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
         - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}
+      run_constrained:
+        - {{ name_prefix_reverse }}libsanitizer < 0.0a0
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
@@ -633,6 +657,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run_constrained:
         - msys2-conda-epoch <0.0a0    # [win]
+        - {{ name_prefix_reverse }}libgomp < 0.0a0
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
@@ -671,6 +696,7 @@ outputs:
         - msys2-conda-epoch <0.0a0    # [win]
         # avoid installing incompatible version of old name for this output
         - {{ name_prefix }}libgcc-ng =={{ version }}=*_{{ build_num }}
+        - {{ name_prefix_reverse }}libgcc < 0.0a0
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
@@ -706,6 +732,7 @@ outputs:
         - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
       run_constrained:
         - {{ name_prefix }}libgfortran {{ gcc_version }}
+        - {{ name_prefix_reverse }}libgfortran{{ libgfortran_soname }} < 0.0a0
     test:
       commands:
         - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
@@ -734,6 +761,7 @@ outputs:
       run_constrained:
         # avoid installing incompatible version of old name for this output
         - {{ name_prefix }}libgfortran-ng =={{ version }}=*_{{ build_num }}
+        - {{ name_prefix_reverse }}libgfortran < 0.0a0
     test:
       commands:
         - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
@@ -759,6 +787,8 @@ outputs:
         - python
         - gdb >= 16.3
         - {{ name_prefix }}libstdcxx >={{ gcc_version }}
+      run_constrained:
+        - {{ name_prefix_reverse }}gdb-pretty-printer < 0.0a0
     about:
       summary: GNU Compiler Collection Python Pretty Printers
       home: https://gcc.gnu.org/
@@ -780,6 +810,8 @@ outputs:
         - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
       run:
         - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
+      run_constrained:
+        - {{ name_prefix_reverse }}libgcc-ng < 0.0a0
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -802,6 +834,8 @@ outputs:
         - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}
       run:
         - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}
+      run_constrained:
+        - {{ name_prefix_reverse }}libstdcxx-ng < 0.0a0
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -823,6 +857,8 @@ outputs:
         - {{ pin_subpackage(name_prefix ~ 'libgfortran', exact=True) }}
       run:
         - {{ pin_subpackage(name_prefix ~ 'libgfortran', exact=True) }}
+      run_constrained:
+        - {{ name_prefix_reverse }}libgfortran-ng < 0.0a0
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
