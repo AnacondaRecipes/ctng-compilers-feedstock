@@ -23,7 +23,11 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
 
   # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L390
   cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared80.a \
-    ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgfortran_nonshared.a
+    ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared110.a \
+    ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared140.a \
+    ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/
 
   if [[ "$target_platform" == 'linux-64' ]]; then
     oformat='OUTPUT_FORMAT(elf64-x86-64)'
@@ -40,4 +44,10 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
     the static library, so try that secondarily.  */
   ${oformat}
   INPUT ( ${PREFIX}/lib/libgfortran.so.5 -lgfortran_nonshared )" > ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgfortran.so
+
+  mkdir -p $PREFIX/bin
+  cp ${RECIPE_DIR}/post-install.sh "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
+  sed -i 's/@libname@/libgfortran/g' "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
+  echo "jcjcjc"
+  cat "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
 fi
