@@ -39,11 +39,15 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   fi
 
   rm -f ${PREFIX}/lib/libgfortran.so
+
+  # We point to /usr/lib64 so that we produced binaries
+  # don't end up with symbols from newwer libgfortran.
+  # This replicates devtoolset as close as possible.
   echo "/* GNU ld script
     Use the shared library, but some functions are only in
     the static library, so try that secondarily.  */
   ${oformat}
-  INPUT ( ${PREFIX}/lib/libgfortran.so.5 -lgfortran_nonshared )" > ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgfortran.so
+  INPUT ( /usr/lib64/libgfortran.so.5 -lgfortran_nonshared )" > ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgfortran.so
 
   mkdir -p $PREFIX/bin
   cp ${RECIPE_DIR}/post-install.sh "$PREFIX/bin/.${PKG_NAME}-post-link.sh"

@@ -49,10 +49,13 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
     exit 1
   fi
 
-  libstdcxx_so="${PREFIX}/lib/libstdc++.so.6"
-  libstdcxx_so_link="INPUT ( ${libstdcxx_so} -lstdc++_nonshared AS_NEEDED (${libstdcxx_so}) )"
-
   rm -v -f ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so
+
+  # We point to /usr/lib64 so that we produced binaries
+  # don't end up with symbols from newwer libstdc++.
+  # This replicates devtoolset as close as possible.
+  libstdcxx_so="/usr/lib64/libstdc++.so.6"
+  libstdcxx_so_link="INPUT ( ${libstdcxx_so} -lstdc++_nonshared AS_NEEDED (${libstdcxx_so}) )"
   echo "/* GNU ld script
     Use the shared library, but some functions are only in
     the static library, so try that secondarily.  */

@@ -39,9 +39,12 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
     exit 1
   fi
 
+  # We point to /usr/lib64 so that we produced binaries
+  # don't end up with symbols from newwer libgcc.
+  # This replicates devtoolset as close as possible.
   echo "/* GNU ld script
     Use the shared library, but some functions are only in
     the static library, so try that secondarily.  */
   ${oformat}
-  GROUP ( ${PREFIX}/lib/libgcc_s.so.1 libgcc.a )" > ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgcc_s.so
+  GROUP ( /usr/lib64/libgcc_s.so.1 libgcc.a )" > ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgcc_s.so
 fi
