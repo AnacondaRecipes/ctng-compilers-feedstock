@@ -1,0 +1,30 @@
+anaconda_config_version: 1
+upstream_sources:
+  - webpage:
+      url: https://gcc.gnu.org/pub/gcc/releases/
+      regex: href="gcc-([\d.]+)/"
+    packages:
+      - libgcc-devel_linux-64
+      - libgcc-devel_linux-aarch64
+      - libstdcxx-devel_linux-64
+      - libstdcxx-devel_linux-aarch64
+      - gcc_impl_linux-64
+      - gcc_impl_linux-aarch64
+      - gcc
+      - gcc-no-conda-specs
+      - conda-gcc-specs
+      - gxx_impl_linux-64
+      - gxx_impl_linux-aarch64
+      - gxx
+      - gfortran_impl_linux-64
+      - gfortran_impl_linux-aarch64
+      - gfortran
+      - libstdcxx
+      - libsanitizer
+      - libgomp
+      - libgcc
+      - libgfortran5
+      - libgfortran
+      - libgcc-ng
+      - libstdcxx-ng
+      - libgfortran-ng
