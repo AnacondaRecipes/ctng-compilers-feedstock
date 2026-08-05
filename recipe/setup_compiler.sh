@@ -29,6 +29,7 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
       "${cross_target_stdlib}_${cross_target_platform}=${cross_target_stdlib_version}" \
       make \
       "flex=2.6.4" \
+      "patchelf>=0.19" \
       ${extra_pkgs[@]}
 fi
 

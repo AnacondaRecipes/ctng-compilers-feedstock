@@ -167,9 +167,9 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
 fi
 
 CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
-	CXXFLAGS="`echo " $OPT_FLAGS " | sed 's/ -Wall / /g;s/ -fexceptions / /g' \
-		  | sed 's/ -Wformat-security / -Wformat -Wformat-security /'`" \
-	XCFLAGS="$OPT_FLAGS" TCFLAGS="$OPT_FLAGS" \
+  CXXFLAGS="`echo " $OPT_FLAGS " | sed 's/ -Wall / /g;s/ -fexceptions / /g' \
+  | sed 's/ -Wformat-security / -Wformat -Wformat-security /'`" \
+  XCFLAGS="$OPT_FLAGS" TCFLAGS="$OPT_FLAGS" \
   ../configure \
   "${GCC_CONFIGURE_OPTIONS[@]}"
 
@@ -182,43 +182,178 @@ else
 fi
 
 if [[ "$gcc_flavor" == "manylinux" ]]; then
+
+  # ------------------
+  # libstdc++ handling
+  # ------------------
+  # Based on: https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L1217-1232
+  # At SHA: 4cab5cef6b1af1fbabe494dc4de62a7e6aa9048d
+  # Modified to print how to "read" a difference in ABI to stdout
+
   mkdir -p libstdc++_compat_test
-  cd libstdc++_compat_test
+  pushd libstdc++_compat_test
 
-  readelf -Ws /usr/lib64/libstdc++.so.6 \
-  | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
-  | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
-  | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
-  | LC_ALL=C sort -u > system.abilist
+  # NOTE: The ABI surface differences are only computed if `DEBUG` is set below, this is
+  # so that there's no need for the system to carry e.g. libstdc++ (albeit unlikely it is
+  # functioning without it).
 
-  # This is in the "build folder"
-  readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
-  | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
-  | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
-  | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
-  | LC_ALL=C sort -u > vanilla.abilist
+  DEBUG=0
 
-  diff -up system.abilist vanilla.abilist \
-  | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+  if [[ "${DEBUG}" == "1" ]]; then
+    readelf -Ws /usr/lib64/libstdc++.so.6 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+      | LC_ALL=C sort -u > system.abilist
+
+    # This is in the "build folder"
+    readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+      | LC_ALL=C sort -u > vanilla.abilist
+
+    diff -up system.abilist vanilla.abilist \
+      | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+  fi # DEBUG
 
   ${SRC_DIR}/build/gcc/xgcc \
-      -B ${SRC_DIR}/build/gcc \
-      -shared \
-      -o libstdc++_nonshared.so \
-      -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
-      -Wl,--no-whole-archive /usr/lib64/libstdc++.so.6
+    -B ${SRC_DIR}/build/gcc \
+    -shared \
+    -o libstdc++_nonshared.so \
+    -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
+    -Wl,--no-whole-archive /usr/lib64/libstdc++.so.6
 
   readelf -Ws libstdc++_nonshared.so \
-  | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
-  | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
-  | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
-  | LC_ALL=C sort -u > nonshared.abilist
+    | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+    | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+    | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+    | LC_ALL=C sort -u > nonshared.abilist
 
-  echo ====================NONSHARED=========================
-  ldd -d -r ./libstdc++_nonshared.so || :
-  ldd -u ./libstdc++_nonshared.so || :
-  diff -up system2vanilla.abilist.diff nonshared.abilist || :
-  readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a | grep HIDDEN.*UND | grep -v __dso_handle || :
-  echo ====================NONSHARED END=====================
+  if [[ x"${DEBUG}" == x"1" ]]; then
+    echo ====================NONSHARED=========================
+    ldd -d -r ./libstdc++_nonshared.so || :
+    ldd -u ./libstdc++_nonshared.so || :
+    echo "If there is a difference here it might indicate a problem. Anything which is '-' "
+    echo "is present in the 'difference' between the toolchain and the system library "
+    echo "ABI list but not present in the static archive, i.e. the archive is deficient "
+    echo "(and '+' is the inverse)."
+    diff -up system2vanilla.abilist.diff nonshared.abilist || :
+    readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a | grep HIDDEN.*UND | grep -v __dso_handle || :
+    echo ====================NONSHARED END=====================
+  fi # DEBUG
   rm -f libstdc++_nonshared.so
+
+  # This part is *not* derived from:
+  # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
+  # and is specific to the Anaconda toolchain.
+  #
+  # Now create a libstdc++.so that looks like it is a similar version to the
+  # system one by hiding anything provided by the archive. First create a
+  # "replacement" list like:
+  # ${symbol} HIDDEN${symbol}
+  # for use by patchelf.
+  cat nonshared.abilist|sed -re 's/([_A-Za-z0-9+][^ ])[ ].*/\1/g' -re 's/(.*)/\1 HIDDEN\1/' > replace_list.txt
+  # Then create a copy of the newly built toolchain libstdc++ library but with all the symbols listed in
+  # the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+  ${BUILD_PREFIX}/bin/patchelf --rename-dynamic-symbols replace_list.txt ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
+    --output ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34
+  # strip the binary
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34
+
+  unset DEBUG
+  popd
+
+
+  # --------------------
+  # libgfortran handling
+  # --------------------
+  # Based on: https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L1217-1232
+  # At SHA: 4cab5cef6b1af1fbabe494dc4de62a7e6aa9048d
+  # Modified for use against the libgfortran library and with an additional print of
+  # how to "read" a difference in ABI to stdout.
+
+  mkdir -p libgfortran_compat_test
+  pushd libgfortran_compat_test
+
+  # NOTE: The ABI surface differences are only computed if `DEBUG` is set below, this is
+  # so that there's no need for the system to carry libgfortran (it's not usually present
+  # by default).
+
+  DEBUG=0
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo "doing readelf on system"
+    # system version
+    readelf -Ws /usr/lib64/libgfortran.so.5 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GFORTRAN_\?[0-9.]*//' \
+      | LC_ALL=C sort -u > system.abilist
+
+    echo "doing readelf on build dir"
+    # build dir version
+    readelf -Ws ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GFORTRAN_\?[0-9.]*//' \
+      | LC_ALL=C sort -u > vanilla.abilist
+
+
+    echo "doing diff"
+    diff -up system.abilist vanilla.abilist \
+      | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+
+  fi # DEBUG
+
+  echo "linking archive"
+  # NOTE: the gfortran archive seems to contain a copy of libgcc.a, do not add the default libs
+  ${SRC_DIR}/build/gcc/xgcc \
+    -B ${SRC_DIR}/build/gcc \
+    -shared \
+    -nodefaultlibs \
+    -o libgfortran_archive.so \
+    -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared80.a
+
+  echo "readelf on linked archive"
+  readelf -Ws ./libgfortran_archive.so \
+    | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+    | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+    | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GFORTRAN_\?[0-9.]*//' \
+    | LC_ALL=C sort -u > nonshared.abilist
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo ====================NONSHARED=========================
+    ldd -d -r ./libgfortran_archive.so || :
+    ldd -u ./libgfortran_archive.so || :
+    echo "If there is a difference here it might indicate a problem. Anything which is '-' "
+    echo "is present in the 'difference' between the toolchain and the system library "
+    echo "ABI list but not present in the static archive, i.e. the archive is deficient "
+    echo "(and '+' is the inverse)."
+    diff -up system2vanilla.abilist.diff nonshared.abilist || :
+    echo ====================NONSHARED END=====================
+  fi # DEBUG
+
+  # This part is *not* derived from:
+  # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
+  # and is specific to the Anaconda toolchain.
+  #
+  # now create a libgfortran.so that looks like it is a similar version to the
+  # system one by hiding  anything provided by the archive. First create a
+  # "replacement" list like:
+  # ${symbol} HIDDEN${symbol}
+  # for use by patchelf.
+  cat nonshared.abilist|sed -re 's/([_A-Za-z0-9+][^ ])[ ].*/\1/g' -re 's/(.*)/\1 HIDDEN\1/' > replace_list.txt
+  # Then create a copy of the newly built toolchain libgfortran++ library but with all the symbols listed in
+  # the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+  ${BUILD_PREFIX}/bin/patchelf --rename-dynamic-symbols replace_list.txt ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so \
+    --output ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0
+  # strip the binary
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0
+
+  unset DEBUG
+  popd
+
 fi

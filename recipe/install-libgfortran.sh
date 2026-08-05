@@ -40,7 +40,7 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
 
   rm -f ${PREFIX}/lib/libgfortran.so
 
-  # We point to /usr/lib64 so that we produced binaries
+  # We point to the internal patched libraries so that we
   # don't end up with symbols from newwer libgfortran.
   # This replicates devtoolset as close as possible.
   echo "/* GNU ld script
@@ -52,6 +52,5 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   mkdir -p $PREFIX/bin
   cp ${RECIPE_DIR}/post-install.sh "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
   sed -i 's/@libname@/libgfortran/g' "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
-  echo "jcjcjc"
   cat "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
 fi

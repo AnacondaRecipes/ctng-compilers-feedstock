@@ -54,6 +54,50 @@ if [[ "${target_platform}" != "${cross_target_platform}" ]]; then
 fi
 cp -f --no-dereference ${SRC_DIR}/build/${CHOST}/libgfortran/.libs/libgfortran.*a ${PREFIX}/${CHOST}/lib/
 
+set -ex
+
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L390
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared80.a \
+    ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared110.a \
+    ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared140.a \
+    ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+
+  # copy lib that is pretending to be the system one into the toolchain
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0 \
+	${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+
+
+  if [[ "$target_platform" == 'linux-64' ]]; then
+    oformat='OUTPUT_FORMAT(elf64-x86-64)'
+  elif [[ "$target_platform" == 'linux-aarch64' ]]; then
+    oformat='OUTPUT_FORMAT(elf64-littleaarch64)'
+  else
+    echo "Unknown platform"
+    exit 1
+  fi
+
+  rm -v -f ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgfortran.so
+
+  # This replicates devtoolset as close as possible.
+  libgfortran_so="${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgfortran_system_like.so.5.0.0"
+  libgfortran_so_link="INPUT ( ${libgfortran_so} -lgfortran_nonshared AS_NEEDED (${libgfortran_so}) )"
+  echo "/* GNU ld script
+    Use the shared library, but some functions are only in
+    the static library, so try that secondarily.  */
+  ${oformat}
+  ${libgfortran_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgfortran.so
+
+  mkdir -p $PREFIX/bin
+  cp ${RECIPE_DIR}/post-install.sh "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
+  sed -i 's/@libname@/libgfortran/g' "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
+  cat "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
+fi
+
+
+
 set +x
 # Strip executables, we may want to install to a different prefix
 # and strip in there so that we do not change files that are not

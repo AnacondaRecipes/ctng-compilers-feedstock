@@ -6,8 +6,11 @@ test -e /etc/os-release && os_release='/etc/os-release' || os_release='/usr/lib/
 
 nonshared=$(ls $PREFIX/lib/gcc/*-conda-linux-gnu/*/@libname@_nonshared*.a 2>/dev/null | head -n 1)
 if [ -z "${nonshared}" ]; then
+    echo "Cannot find nonshared archive ${nonshared}"
     exit 1
 fi
+
+echo "Nonshared archive is: ${nonshared}"
 
 nonshared_dir=$(dirname "${nonshared}")
 
