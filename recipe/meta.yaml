@@ -257,10 +257,10 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       run_constrained:
         - {{ name_prefix_reverse }}gcc_impl_{{ cross_target_platform }} < 0.0a0
-    run_exports:
+    run_exports:                                       # [gcc_flavor != "manylinux"]
       # impose this requirement across the build/host boundary
-      strong:
-        - {{ name_prefix }}libgcc >={{ gcc_version }}
+      strong:                                          # [gcc_flavor != "manylinux"]
+        - {{ name_prefix }}libgcc >={{ gcc_version }}  # [gcc_flavor != "manylinux"]
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -415,10 +415,10 @@ outputs:
         - tzdata
       run_constrained:
         - {{ name_prefix_reverse }}gxx_impl_{{ cross_target_platform }} < 0.0a0
-    run_exports:
+    run_exports:                                          # [gcc_flavor != "manylinux"]
       # impose this requirement across the build/host boundary
-      strong:
-        - {{ name_prefix }}libstdcxx >={{ gcc_version }}
+      strong:                                             # [gcc_flavor != "manylinux"]
+        - {{ name_prefix }}libstdcxx >={{ gcc_version }}  # [gcc_flavor != "manylinux"]
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -503,11 +503,11 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       run_constrained:
         - {{ name_prefix_reverse }}gfortran_impl_{{ cross_target_platform }} < 0.0a0
-    run_exports:
+    run_exports:                                                                    # [gcc_flavor != "manylinux"]
       # impose this requirement across the build/host boundary
-      strong:
-        - {{ name_prefix }}libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*
-        - {{ name_prefix }}libgcc >={{ gcc_version }}
+      strong:                                                                       # [gcc_flavor != "manylinux"]
+        - {{ name_prefix }}libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*  # [gcc_flavor != "manylinux"]
+        - {{ name_prefix }}libgcc >={{ gcc_version }}                               # [gcc_flavor != "manylinux"]
     test:
       requires:
         - cmake >=3.11,<4  # [x86_64 or aarch64 or ppc64le]
@@ -606,6 +606,8 @@ outputs:
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      # Keep libsanitizer run_exports even for manylinux. The manylinux toolchain
+      # doesn't affect libsanitizer, so we still need the run_exports.
       run_exports:
         - {{ name_prefix }}libsanitizer {{ gcc_version }}
       overlinking_ignore_patterns:
@@ -645,6 +647,9 @@ outputs:
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      # Note that we are keeping the run_exports on libgomp for manylinux
+      # because the toolchain doesn't change anything OpenMP related.
+      # So the run_export is still required for manylinux.
       run_exports:
         strong:
           - _openmp_mutex * *_gnu
@@ -802,9 +807,9 @@ outputs:
     build:
       number: {{ build_num }}
       skip: true    # [target_platform != cross_target_platform]
-      run_exports:
-        strong:
-          - {{ name_prefix}}libgcc
+      run_exports:                  # [gcc_flavor != "manylinux"]
+        strong:                     # [gcc_flavor != "manylinux"]
+          - {{ name_prefix}}libgcc  # [gcc_flavor != "manylinux"]
     requirements:
       host:
         - {{ pin_subpackage(name_prefix ~ "libgcc", exact=True) }}
@@ -826,9 +831,9 @@ outputs:
     build:
       number: {{ build_num }}
       skip: true   # [target_platform != cross_target_platform]
-      run_exports:
-        strong:
-          - {{ name_prefix }}libstdcxx
+      run_exports:                      # [gcc_flavor != "manylinux"]
+        strong:                         # [gcc_flavor != "manylinux"]
+          - {{ name_prefix }}libstdcxx  # [gcc_flavor != "manylinux"]
     requirements:
       host:
         - {{ pin_subpackage(name_prefix ~ "libstdcxx", exact=True) }}
@@ -849,9 +854,9 @@ outputs:
     build:
       number: {{ build_num }}
       skip: true   # [target_platform != cross_target_platform]
-      run_exports:
-        strong:
-          - {{ name_prefix }}libgfortran
+      run_exports:                        # [gcc_flavor != "manylinux"]
+        strong:                           # [gcc_flavor != "manylinux"]
+          - {{ name_prefix }}libgfortran  # [gcc_flavor != "manylinux"]
     requirements:
       host:
         - {{ pin_subpackage(name_prefix ~ 'libgfortran', exact=True) }}
