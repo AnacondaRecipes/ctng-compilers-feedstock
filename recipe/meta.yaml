@@ -145,6 +145,7 @@ outputs:
     build:
       noarch: generic
       number: {{ libgcc_devel_build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -180,6 +181,7 @@ outputs:
     build:
       noarch: generic
       number: {{ libgcc_devel_build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -218,6 +220,7 @@ outputs:
     script: install-gcc.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - '*'
@@ -287,6 +290,7 @@ outputs:
   - name: gcc
     script: install-symlinks.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
       track_features:            # [not with_conda_specs]
         - gcc_no_conda_specs     # [not with_conda_specs]
@@ -308,6 +312,7 @@ outputs:
 
   - name: gcc-no-conda-specs
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [with_conda_specs]
     requirements:
       run:
@@ -322,6 +327,7 @@ outputs:
     script: install-conda-specs.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [cross_target_platform != target_platform]
       detect_binary_files_with_prefix: false
     requirements:
@@ -371,6 +377,7 @@ outputs:
     script: install-g++.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -431,6 +438,7 @@ outputs:
   - name: gxx
     script: install-symlinks.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
@@ -453,6 +461,7 @@ outputs:
     script: install-gfortran.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -507,6 +516,7 @@ outputs:
   - name: gfortran
     script: install-symlinks.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
     requirements:
       host:
@@ -532,6 +542,7 @@ outputs:
     script: install-libstdc++.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -567,6 +578,7 @@ outputs:
     script: install-libsanitizer.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform or win]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -606,6 +618,7 @@ outputs:
     script: install-libgomp.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -642,6 +655,7 @@ outputs:
     script: install-libgcc-no-gomp.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -683,6 +697,7 @@ outputs:
     script: install-libgfortran.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -719,6 +734,7 @@ outputs:
     build:
       skip: true   # [target_platform != cross_target_platform]
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
     requirements:
       run:
         - {{ pin_subpackage('libgfortran' ~ libgfortran_soname, exact=True) }}
@@ -739,6 +755,7 @@ outputs:
     version: {{ gcc_version }}
     script: install-gdb-pretty-printer.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       # skip until gdb 16.3 is on defaults (which is built against GCC 14.3.0)
       skip: true
       number: {{ build_num }}
@@ -763,6 +780,7 @@ outputs:
     target: {{ cross_target_platform }}
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true    # [target_platform != cross_target_platform]
       run_exports:                  # [gcc_flavor != "manylinux"]
         strong:                     # [gcc_flavor != "manylinux"]
@@ -785,6 +803,7 @@ outputs:
     script: install-libstdc++.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [target_platform != cross_target_platform]
       run_exports:                      # [gcc_flavor != "manylinux"]
         strong:                         # [gcc_flavor != "manylinux"]
@@ -806,6 +825,7 @@ outputs:
     target: {{ cross_target_platform }}
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [target_platform != cross_target_platform]
       run_exports:                        # [gcc_flavor != "manylinux"]
         strong:                           # [gcc_flavor != "manylinux"]
