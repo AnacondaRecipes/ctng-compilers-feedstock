@@ -29,7 +29,16 @@ rm -rf ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/include/unwind.h
 
 popd
 
+
 if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L390
+
+  mkdir -p ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+
+  # copy lib that is pretending to be the system one into the toolchain
+  cp -v -a ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1 \
+    ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
+
   if [[ "$target_platform" == 'linux-64' ]]; then
     oformat='OUTPUT_FORMAT(elf64-x86-64)'
   elif [[ "$target_platform" == 'linux-aarch64' ]]; then
@@ -39,12 +48,16 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
     exit 1
   fi
 
-  # We point to /usr/lib64 so that we produced binaries
-  # don't end up with symbols from newwer libgcc.
+  rm -v -f ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgcc_s.so
+
   # This replicates devtoolset as close as possible.
+  libgcc_s_so="${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgcc_s_system_like.so.1"
+  libgcc_s_so_link="GROUP ( ${libgcc_s_so} -lgcc )"
   echo "/* GNU ld script
-    Use the shared library, but some functions are only in
-    the static library, so try that secondarily.  */
+  Use the shared library, but some functions are only in
+  the static library, so try that secondarily.  */
   ${oformat}
-  GROUP ( /usr/lib64/libgcc_s.so.1 libgcc.a )" > ${PREFIX}/lib/gcc/${triplet}/${gcc_version}/libgcc_s.so
+  ${libgcc_s_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgcc_s.so
+
 fi
+

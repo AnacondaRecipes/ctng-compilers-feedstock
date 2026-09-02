@@ -356,4 +356,106 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   unset DEBUG
   popd
 
+  # --------------------
+  # libgcc_s handling
+  # --------------------
+  # Based on: https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L1217-1232
+  # At SHA: 4cab5cef6b1af1fbabe494dc4de62a7e6aa9048d
+  # Modified for use against the libgcc_s library and with an additional print of
+  # how to "read" a difference in ABI to stdout.
+  # The handling here is different to libstdc++ and libgfortran in that there isn't a specific toolset
+  # variant provided through the patches. The linker scripts do something like GROUP(/system_path/libgcc_s.so.1 -lgcc)
+  # which means the toolchain version provided here needs to emulate the system library like usual, but there's
+  # no internal source of truth available from e.g. a custom static nonshared80 archive.
+  #
+  # NOTE: if the baseline OS is moved OR the toolchain is updated, then update
+  # this section and the associated code below.
+  #
+  # To achieve the desired outcome, we rely on the knowledge that:
+  # * the nonshared80 equivalent system libraries are based on GCC 8
+  # * all the symbols in libgcc_s.so.1 are versioned
+  # * we've got a toolcahin that produces higher than GCC 8 versioned symbols, but they are only ever of version 11, 13, 14.
+  #
+  # NOTE: to test the linker script, the compiler driver needs to be passed the `--shared-libgcc` option
+  # as the default linkage for libgcc in this toolchain is static.
+
+  mkdir -p libgcc_s_compat_test
+  pushd libgcc_s_compat_test
+
+  # NOTE: The ABI surface differences are only computed if `DEBUG` is set below..
+
+  DEBUG=0
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo "doing readelf on system"
+    # system version
+    readelf -Ws /usr/lib64/libgcc_s.so.1 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GCC_\?[0-9.]*//' \
+      | LC_ALL=C sort -u > system.abilist
+
+  fi # DEBUG
+
+  echo "doing readelf on build dir"
+  # build dir version
+  readelf -Ws ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s.so.1 \
+    | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+    | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+    | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;' \
+    | LC_ALL=C sort -u > toolchain.versioned_abilist
+
+
+  if [[ "${DEBUG}" == "1" ]]; then
+    # this is the symbol stripped version like in the libstdc++/libgfortran handling
+    cat toolchain.versioned_abilist \
+      | sed 's/@@GCC_\?[0-9.]*//' > vanilla.abilist
+
+    echo "doing diff"
+    diff -up system.abilist vanilla.abilist \
+      | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+
+  fi # DEBUG
+
+  # This is where the differences to the nonshared* treatment used in libstdc++ etc above start
+  # to occur. The replace_list.txt is generated from knowledge opposed to something created.
+
+  # The "toolchain.versioned_abilist" contains the toolchain ABI as it is built, we're now going to mangle it
+  # to create a nonshared.abilist. Any symbol which is versioned GCC_{11, 13, 14} needs to be retained in its
+  # nonversioned form.
+  echo "creating nonshared abilist"
+  cat toolchain.versioned_abilist|grep -e '@@GCC_11' -e '@@GCC_13' -e '@@GCC_14'|sed 's/@@GCC_\?[0-9.]*//' > nonshared.abilist
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo ====================NONSHARED=========================
+    echo "If there is a difference here it might indicate a problem. Anything which is '-' "
+    echo "is present in the 'difference' between the toolchain and the system library "
+    echo "ABI list but not present in the static archive, i.e. the archive is deficient "
+    echo "(and '+' is the inverse)."
+    diff -up system2vanilla.abilist.diff nonshared.abilist || :
+    echo ====================NONSHARED END=====================
+  fi # DEBUG
+
+  # This part is *not* derived from:
+  # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
+  # and is specific to the Anaconda toolchain.
+  #
+  # now create a libgcc_s.so that looks like it is a similar version to the
+  # system one by hiding  anything provided by the archive. First create a
+  # "replacement" list like:
+  # ${symbol} HIDDEN${symbol}
+  # for use by patchelf.
+  cat nonshared.abilist|sed -re 's/([_A-Za-z0-9+][^ ])[ ].*/\1/g' -re 's/(.*)/\1 HIDDEN\1/' > replace_list.txt
+  # Then create a copy of the newly built toolchain libgcc_s library but with all the symbols listed in
+  # the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+  ${BUILD_PREFIX}/bin/patchelf --rename-dynamic-symbols replace_list.txt ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s.so.1  \
+    --output ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1
+  # strip the binary
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1
+
+  unset DEBUG
+  popd
+
 fi
