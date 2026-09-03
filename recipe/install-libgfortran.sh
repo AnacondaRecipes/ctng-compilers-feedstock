@@ -38,8 +38,6 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
     exit 1
   fi
 
-  rm -f ${PREFIX}/lib/libgfortran.so
-
   # We point to the internal patched libraries so that we
   # don't end up with symbols from newwer libgfortran.
   # This replicates devtoolset as close as possible.

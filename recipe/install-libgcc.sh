@@ -80,7 +80,3 @@ if [[ "${PKG_NAME}" != gcc_impl* ]]; then
 fi
 
 rm -f ${PREFIX}/share/info/dir
-
-if [[ "$gcc_flavor" == "manylinux" ]]; then
-  rm -f ${PREFIX}/lib/libgcc_s.so
-fi

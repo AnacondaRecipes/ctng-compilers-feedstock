@@ -27,8 +27,3 @@ find ${PREFIX}/lib -name "*\.la" -exec rm -v -rf {} -v \;
 # Install Runtime Library Exception
 install -Dm644 ${SRC_DIR}/COPYING.RUNTIME \
         ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
-
-if [[ "$gcc_flavor" == "manylinux" ]]; then
-  # We don't ship this one in the devtoolset.
-  rm -v ${PREFIX}/lib/libstdc++.so
-fi

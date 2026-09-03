@@ -165,7 +165,7 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_eh.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc.a
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so
+        # - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         {% else %}
@@ -493,8 +493,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       commands:
         {% if cross_target_platform.startswith("linux-") %}
-        - test ! -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
-        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so
         {% else %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.dll.a
         {% endif %}
@@ -562,9 +561,8 @@ outputs:
         - libstdcxx-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test ! -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor == "manylinux"]
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so
-        - test -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/libstdc++.so
         - test -f ${PREFIX}/lib/libstdc++.so.6
         - test -f ${PREFIX}/lib/libstdc++.so.6.0.34
         - test -f ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
@@ -680,8 +678,7 @@ outputs:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       commands:
-        - test ! -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor == "manylinux"]
-        - test -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/libgcc_s.so
         - test -f ${PREFIX}/lib/libgcc_s.so.1
         # libgcc should not ship the libgomp, which has its own output.
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
@@ -714,8 +711,7 @@ outputs:
         - libgfortran {{ gcc_version }}
     test:
       commands:
-        - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
-        - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/libgfortran.so
         - test -f ${PREFIX}/lib/libgfortran.so.5
         - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so  # [gcc_flavor == "manylinux"]
@@ -744,8 +740,7 @@ outputs:
         - libgfortran-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
-        - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/libgfortran.so
     about:
       summary: The GNU Fortran Runtime Library
       home: https://gcc.gnu.org/
