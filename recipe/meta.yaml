@@ -140,6 +140,16 @@ requirements:
     - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
 
 outputs:
+  - name: _gcc_mutex
+    version: 1
+    build:
+      number: 0
+      string: {{ gcc_flavor }}
+    about:
+      summary: Mutex for the GCC compiler to differentiate the AD and manylinux toolchain
+      home: https://anaconda.com
+      license: BSD-3-Clause
+
   - name: libgcc-devel_{{ cross_target_platform }}
     script: install-libgcc-devel.sh
     build:
@@ -160,6 +170,7 @@ outputs:
       run:
         - __unix   # [unix]
         - __win    # [win]
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
@@ -196,6 +207,7 @@ outputs:
       run:
         - __unix   # [unix]
         - __win    # [win]
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
@@ -244,6 +256,7 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}            # [target_platform == cross_target_platform]
         - {{ pin_subpackage("libgomp", exact=True) }}           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     run_exports:                                       # [gcc_flavor != "manylinux"]
       # impose this requirement across the build/host boundary
       strong:                                          # [gcc_flavor != "manylinux"]
@@ -300,6 +313,7 @@ outputs:
       run:
         - {{ pin_subpackage("gcc_impl_" ~ target_platform, exact=True) }}
         - conda-gcc-specs        # [with_conda_specs]
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - ${PREFIX}/bin/gcc -v
@@ -317,6 +331,7 @@ outputs:
     requirements:
       run:
         - gcc
+        - _gcc_mutex 1 {{ gcc_flavor }}
       run_constrained:
         - conda-gcc-specs <0.0a0
     test:
@@ -334,6 +349,7 @@ outputs:
       build:
       run:
         - {{ pin_subpackage("gcc_impl_" ~ cross_target_platform, exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       files:
         - tests
@@ -397,6 +413,7 @@ outputs:
         - {{ pin_subpackage("libstdcxx-devel_" ~ cross_target_platform, exact=True) }}
         # for C++20 chrono support
         - tzdata
+        - _gcc_mutex 1 {{ gcc_flavor }}
     run_exports:                                          # [gcc_flavor != "manylinux"]
       # impose this requirement across the build/host boundary
       strong:                                             # [gcc_flavor != "manylinux"]
@@ -447,6 +464,7 @@ outputs:
       run:
         - {{ pin_subpackage("gxx_impl_" ~ target_platform, exact=True) }}
         - {{ pin_subpackage("gcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - ${PREFIX}/bin/g++ -v
@@ -481,6 +499,7 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}                              # [target_platform == cross_target_platform]
         - {{ pin_subpackage("libstdcxx", exact=True) }}                           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     run_exports:                                                                    # [gcc_flavor != "manylinux"]
       # impose this requirement across the build/host boundary
       strong:                                                                       # [gcc_flavor != "manylinux"]
@@ -526,6 +545,7 @@ outputs:
         - gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
         - gcc_impl_{{ target_platform }} {{ gcc_version }}.*
         - gcc {{ gcc_version }}.*
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - ${PREFIX}/bin/gfortran -v
@@ -555,6 +575,7 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
       run_constrained:
         # avoid installing incompatible version of old name for this output
         # TODO: Figure out if out custom build string will impact this.
@@ -597,6 +618,7 @@ outputs:
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
         - {{ pin_subpackage("libstdcxx", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
@@ -634,6 +656,8 @@ outputs:
       build:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
+      run:
+        - _gcc_mutex 1 {{ gcc_flavor }}
       run_constrained:
         - msys2-conda-epoch <0.0a0    # [win]
     test:
@@ -668,6 +692,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run:
         - _openmp_mutex * *_gnu
+        - _gcc_mutex 1 {{ gcc_flavor }}
       run_constrained:
         - {{ pin_subpackage("libgomp", exact=True) }}
         - msys2-conda-epoch <0.0a0    # [win]
@@ -707,6 +732,7 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
       run_constrained:
         - libgfortran {{ gcc_version }}
     test:
@@ -734,6 +760,7 @@ outputs:
     requirements:
       run:
         - {{ pin_subpackage('libgfortran' ~ libgfortran_soname, exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
       run_constrained:
         # avoid installing incompatible version of old name for this output
         # TODO: Figure out if out custom build string will impact this.
@@ -763,6 +790,7 @@ outputs:
         - python
         - gdb >= 16.3
         - libstdcxx >={{ gcc_version }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     about:
       summary: GNU Compiler Collection Python Pretty Printers
       home: https://gcc.gnu.org/
@@ -785,6 +813,7 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -808,6 +837,7 @@ outputs:
         - {{ pin_subpackage("libstdcxx", exact=True) }}
       run:
         - {{ pin_subpackage("libstdcxx", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -830,6 +860,7 @@ outputs:
         - {{ pin_subpackage('libgfortran', exact=True) }}
       run:
         - {{ pin_subpackage('libgfortran', exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
