@@ -10,7 +10,7 @@ if [[ "${TARGET}" == *mingw* ]]; then
   cp ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran*.dll ${PREFIX}/bin/
 else
   mkdir -p ${PREFIX}/lib
-  cp -f --no-dereference ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran*.so* ${PREFIX}/lib/
+  cp -f --no-dereference ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so* ${PREFIX}/lib/
 fi
 
 # Install Runtime Library Exception

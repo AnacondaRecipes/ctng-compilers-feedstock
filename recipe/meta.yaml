@@ -176,6 +176,11 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_eh.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc.a
+        # - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                               # [gcc_flavor == "manylinux"]
+        # - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
+        # - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                             # [gcc_flavor != "manylinux"]
+        # - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0    # [gcc_flavor == "manylinux"]
+        # - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0  # [gcc_flavor != "manylinux"]
         # - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
@@ -213,10 +218,17 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++fs.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libsupc++.a
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared.a  # [gcc_flavor == "manylinux"]
-        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared.a  # [gcc_flavor != "manylinux"]
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so  # [gcc_flavor == "manylinux"]
-        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so                               # [gcc_flavor == "manylinux"]
+        - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so                             # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared110.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared110.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared140.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared140.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared80.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared80.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_system_like.so.6.0.34    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_system_like.so.6.0.34  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/include/c++/cstdio
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libstdc++.so
@@ -510,9 +522,21 @@ outputs:
         - cmake >=3.11,<4  # [x86_64 or aarch64 or ppc64le]
         - make
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
+        - file
       commands:
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so                               # [gcc_flavor == "manylinux"]
+        - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so                             # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared110.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared110.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared140.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared140.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared80.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared80.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0  # [gcc_flavor != "manylinux"]
         {% else %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.dll.a
         {% endif %}
@@ -740,10 +764,7 @@ outputs:
         - test -f ${PREFIX}/lib/libgfortran.so
         - test -f ${PREFIX}/lib/libgfortran.so.5
         - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so  # [gcc_flavor == "manylinux"]
-        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so  # [gcc_flavor != "manylinux"]
-        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared.a  # [gcc_flavor == "manylinux"]
-        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared.a  # [gcc_flavor != "manylinux"]
+        - ls ${PREFIX}/lib/libgfortran*system*.so.* >/dev/null 2>&1 && exit 1
         - test -f ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
 
     about:
