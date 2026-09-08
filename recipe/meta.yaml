@@ -176,12 +176,11 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_eh.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc.a
-        # - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                               # [gcc_flavor == "manylinux"]
-        # - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
-        # - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                             # [gcc_flavor != "manylinux"]
-        # - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0    # [gcc_flavor == "manylinux"]
-        # - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0  # [gcc_flavor != "manylinux"]
-        # - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                               # [gcc_flavor == "manylinux"]
+        - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                             # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1  # [gcc_flavor != "manylinux"]
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         {% else %}
