@@ -35,10 +35,6 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L390
   cp -v -a ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
     ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
-  cp -v -a ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared110.a \
-    ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
-  cp -v -a ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared140.a \
-    ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/
 
   # copy lib that is pretending to be the system one
   cp -v -a ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34 \
@@ -59,15 +55,10 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # don't end up with symbols from newwer libstdc++.
   # This replicates devtoolset as close as possible.
   libstdcxx_so="${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++_system_like.so.6.0.34"
-  libstdcxx_so_link="INPUT ( ${libstdcxx_so} -lstdc++_nonshared AS_NEEDED (${libstdcxx_so}) )"
+  libstdcxx_so_link="INPUT ( ${libstdcxx_so} -lstdc++_nonshared80 AS_NEEDED (${libstdcxx_so}) )"
   echo "/* GNU ld script
     Use the shared library, but some functions are only in
     the static library, so try that secondarily.  */
   ${oformat}
   ${libstdcxx_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so
-
-  mkdir -p $PREFIX/bin
-  cp ${RECIPE_DIR}/post-install.sh "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
-  sed -i 's/@libname@/libstdc++/g' "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
-  cat "$PREFIX/bin/.${PKG_NAME}-post-link.sh"
 fi
