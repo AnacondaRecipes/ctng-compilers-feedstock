@@ -183,6 +183,15 @@ fi
 
 if [[ "$gcc_flavor" == "manylinux" ]]; then
 
+  function get_nonhidden_ver_symbols() {
+    # This is used to dump non-HIDDEN-prefixed versioned symbols to file
+    # Usage:
+    # get_nonhidden_ver_symbols <path/to/library_to_scrape.so> <path/to/outfile>
+    fname=$1
+    outfile=$2
+    readelf --dyn-sym ${fname} |grep -v HIDDEN|grep @|sed -e 's/@@/@/g'|cut -d @ -f 2|cut -d ' ' -f1|sort|uniq > ${outfile}
+  }
+
   # ------------------
   # libstdc++ handling
   # ------------------
@@ -248,18 +257,19 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
   # and is specific to the Anaconda toolchain.
   #
-  # Now create a libstdc++.so that looks like it is a similar version to the
-  # system one by hiding anything provided by the archive. First create a
-  # "replacement" list like:
-  # ${symbol} HIDDEN${symbol}
-  # for use by patchelf.
-  cat nonshared.abilist|sed -re 's/([_A-Za-z0-9+][^ ])[ ].*/\1/g' -re 's/(.*)/\1 HIDDEN\1/' > replace_list.txt
-  # Then create a copy of the newly built toolchain libstdc++ library but with all the symbols listed in
-  # the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
-  ${BUILD_PREFIX}/bin/patchelf --rename-dynamic-symbols replace_list.txt ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
-    --output ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34
-  # strip the binary
-  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34
+  # Create a copy of the newly built toolchain libstdc++ library but with all the "too new" symbols
+  # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+
+  # copy the lib, strip it, then mangle
+  cp ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 tmp.so
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25 tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34
+  rm -v tmp.so
+
+  # check the mangle
+  get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34 system_like_syms
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25 system_like_syms|grep "OK"
 
   unset DEBUG
   popd
@@ -340,18 +350,18 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
   # and is specific to the Anaconda toolchain.
   #
-  # now create a libgfortran.so that looks like it is a similar version to the
-  # system one by hiding  anything provided by the archive. First create a
-  # "replacement" list like:
-  # ${symbol} HIDDEN${symbol}
-  # for use by patchelf.
-  cat nonshared.abilist|sed -re 's/([_A-Za-z0-9+][^ ])[ ].*/\1/g' -re 's/(.*)/\1 HIDDEN\1/' > replace_list.txt
-  # Then create a copy of the newly built toolchain libgfortran++ library but with all the symbols listed in
-  # the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
-  ${BUILD_PREFIX}/bin/patchelf --rename-dynamic-symbols replace_list.txt ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so \
-    --output ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0
-  # strip the binary
-  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0
+  # Create a copy of the newly built toolchain libgfortran++ library but with all the "too new" symbols
+  # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+
+  cp ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so tmp.so
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgfortran_sym_vers.5 tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0
+  rm -v tmp.so
+
+  # check the mangle
+  get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0 system_like_syms
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgfortran_sym_vers.5 system_like_syms|grep "OK"
 
   unset DEBUG
   popd
@@ -365,11 +375,6 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # how to "read" a difference in ABI to stdout.
   # The handling here is different to libstdc++ and libgfortran in that there isn't a specific toolset
   # variant provided through the patches. The linker scripts do something like GROUP(/system_path/libgcc_s.so.1 -lgcc)
-  # which means the toolchain version provided here needs to emulate the system library like usual, but there's
-  # no internal source of truth available from e.g. a custom static nonshared80 archive.
-  #
-  # NOTE: if the baseline OS is moved OR the toolchain is updated, then update
-  # this section and the associated code below.
   #
   # To achieve the desired outcome, we rely on the knowledge that:
   # * the nonshared80 equivalent system libraries are based on GCC 8
@@ -442,18 +447,17 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
   # and is specific to the Anaconda toolchain.
   #
-  # now create a libgcc_s.so that looks like it is a similar version to the
-  # system one by hiding  anything provided by the archive. First create a
-  # "replacement" list like:
-  # ${symbol} HIDDEN${symbol}
-  # for use by patchelf.
-  cat nonshared.abilist|sed -re 's/([_A-Za-z0-9+][^ ])[ ].*/\1/g' -re 's/(.*)/\1 HIDDEN\1/' > replace_list.txt
-  # Then create a copy of the newly built toolchain libgcc_s library but with all the symbols listed in
-  # the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
-  ${BUILD_PREFIX}/bin/patchelf --rename-dynamic-symbols replace_list.txt ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s.so.1  \
-    --output ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1
-  # strip the binary
-  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1
+  # Create a copy of the newly built toolchain libgcc_s library but with all the "too new "symbols
+  # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+  cp ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s.so.1 tmp.so
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgcc_s_sym_vers.1 tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1
+  rm -v tmp.so
+
+  # check the mangle
+  get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1 system_like_syms
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgcc_s_sym_vers.1 system_like_syms|grep "OK"
 
   unset DEBUG
   popd
