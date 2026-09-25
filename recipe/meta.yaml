@@ -153,6 +153,9 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       overlinking_ignore_patterns:
         - "*/lib/libgcc_s.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -194,6 +197,9 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       overlinking_ignore_patterns:
         - "*/lib/libstdc++.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -235,6 +241,11 @@ outputs:
         - '*'
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_exports:
+        # impose this requirement across the build/host boundary
+        strong:
+          - libgcc >={{ gcc_version }}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -254,10 +265,6 @@ outputs:
         - {{ pin_subpackage("libgomp", exact=True) }}           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
         - _gcc_mutex 1 {{ gcc_flavor }}_*
-    run_exports:                                       # [gcc_flavor != "manylinux"]
-      # impose this requirement across the build/host boundary
-      strong:                                          # [gcc_flavor != "manylinux"]
-        - libgcc >={{ gcc_version }}                   # [gcc_flavor != "manylinux"]
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -304,6 +311,9 @@ outputs:
       skip: true  # [target_platform != cross_target_platform]
       track_features:            # [not with_conda_specs]
         - gcc_no_conda_specs     # [not with_conda_specs]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("gcc_impl_" ~ target_platform, exact=True) }}
@@ -325,6 +335,9 @@ outputs:
     build:
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [with_conda_specs]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       run:
         - gcc
@@ -342,6 +355,9 @@ outputs:
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [cross_target_platform != target_platform]
       detect_binary_files_with_prefix: false
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       run:
@@ -396,6 +412,11 @@ outputs:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_exports:
+        # impose this requirement across the build/host boundary
+        strong:
+          - libstdcxx >={{ gcc_version }}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -411,10 +432,6 @@ outputs:
         # for C++20 chrono support
         - tzdata
         - _gcc_mutex 1 {{ gcc_flavor }}_*
-    run_exports:                                          # [gcc_flavor != "manylinux"]
-      # impose this requirement across the build/host boundary
-      strong:                                             # [gcc_flavor != "manylinux"]
-        - libstdcxx >={{ gcc_version }}                   # [gcc_flavor != "manylinux"]
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -454,6 +471,9 @@ outputs:
     build:
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("gxx_impl_" ~ target_platform, exact=True) }}
@@ -482,6 +502,12 @@ outputs:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_exports:
+        # impose this requirement across the build/host boundary
+        strong:
+          - libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*
+          - libgcc >={{ gcc_version }}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -497,11 +523,6 @@ outputs:
         - {{ pin_subpackage("libstdcxx", exact=True) }}                           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
         - _gcc_mutex 1 {{ gcc_flavor }}_*
-    run_exports:                                                                    # [gcc_flavor != "manylinux"]
-      # impose this requirement across the build/host boundary
-      strong:                                                                       # [gcc_flavor != "manylinux"]
-        - libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*                   # [gcc_flavor != "manylinux"]
-        - libgcc >={{ gcc_version }}                                                # [gcc_flavor != "manylinux"]
     test:
       requires:
         - cmake >=3.11,<4  # [x86_64 or aarch64 or ppc64le]
@@ -541,6 +562,9 @@ outputs:
     build:
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
@@ -573,6 +597,9 @@ outputs:
         - "*"
       overlinking_ignore_patterns:
         - "lib/libstdc++.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -616,6 +643,9 @@ outputs:
         - "lib/libasan.so.*"
         - "lib/liblsan.so.*"
         - "lib/libhwasan.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -657,6 +687,7 @@ outputs:
           {% if cross_target_platform.startswith("win-") %}
           - {{ pin_subpackage("libgomp", max_pin=None) }}
           {% endif %}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -690,6 +721,9 @@ outputs:
       rpaths_patcher: patchelf
       overlinking_ignore_patterns:
         - "lib/libgcc_s.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -731,6 +765,9 @@ outputs:
         - "*"
       overlinking_ignore_patterns:
         - "lib/libgfortran.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -759,6 +796,9 @@ outputs:
       skip: true   # [target_platform != cross_target_platform]
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       run:
         - {{ pin_subpackage('libgfortran' ~ libgfortran_soname, exact=True) }}
@@ -785,6 +825,9 @@ outputs:
       number: {{ build_num }}
       ignore_run_exports:   # [linux]
         - libstdcxx         # [linux]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - python
@@ -807,9 +850,10 @@ outputs:
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true    # [target_platform != cross_target_platform]
-      run_exports:                  # [gcc_flavor != "manylinux"]
-        strong:                     # [gcc_flavor != "manylinux"]
-          - libgcc                  # [gcc_flavor != "manylinux"]
+      run_exports:
+        strong:
+          - libgcc
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("libgcc", exact=True) }}
@@ -831,9 +875,10 @@ outputs:
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [target_platform != cross_target_platform]
-      run_exports:                      # [gcc_flavor != "manylinux"]
-        strong:                         # [gcc_flavor != "manylinux"]
-          - libstdcxx                   # [gcc_flavor != "manylinux"]
+      run_exports:
+        strong:
+          - libstdcxx
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("libstdcxx", exact=True) }}
@@ -854,9 +899,10 @@ outputs:
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [target_platform != cross_target_platform]
-      run_exports:                        # [gcc_flavor != "manylinux"]
-        strong:                           # [gcc_flavor != "manylinux"]
-          - libgfortran                   # [gcc_flavor != "manylinux"]
+      run_exports:
+        strong:
+          - libgfortran
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage('libgfortran', exact=True) }}
