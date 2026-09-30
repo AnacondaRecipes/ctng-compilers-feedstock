@@ -184,13 +184,17 @@ fi
 if [[ "$gcc_flavor" == "manylinux" ]]; then
 
   function get_nonhidden_ver_symbols() {
-    # This is used to dump non-HIDDEN-prefixed versioned symbols to file
+    # This is used to dump exported non-HIDDEN-prefixed versioned symbols to file
     # Usage:
     # get_nonhidden_ver_symbols <path/to/library_to_scrape.so> <path/to/outfile>
     fname=$1
     outfile=$2
-    readelf --dyn-sym ${fname} |grep -v HIDDEN|grep @|sed -e 's/@@/@/g'|cut -d @ -f 2|cut -d ' ' -f1|sort|uniq > ${outfile}
+    readelf --dyn-sym -W ${fname}|grep -v ' UND '|grep -v __HIDDEN|grep @|sed -e 's/@@/@/g'|cut -d @ -f 2|cut -d ' ' -f1|sort|uniq > ${outfile}
   }
+
+  # get arch string, symbol masks are keyed on it.
+  source $RECIPE_DIR/get_cpu_arch.sh
+  ARCH_STR=`get_cpu_arch ${target_platform}`
 
   # ------------------
   # libstdc++ handling
@@ -263,13 +267,18 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # copy the lib, strip it, then mangle
   cp ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 tmp.so
   ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
-  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25 tmp.so \
-    ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25.json tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34 ${ARCH_STR}
   rm -v tmp.so
 
   # check the mangle
+  # first... there should be no `UND` symbols containing the mangle
+  if [[ "`readelf --dyn-sym -W ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34|grep ' UND '|grep '__HIDDEN'|wc -l`" != "0" ]]; then
+    echo "A hidden UND symbol was found, the hiding script did something unexpected";
+    exit 1;
+  fi
   get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34 system_like_syms
-  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25 system_like_syms|grep "OK"
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25.json system_like_syms ${ARCH_STR}|grep "OK"
 
   unset DEBUG
   popd
@@ -352,16 +361,20 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   #
   # Create a copy of the newly built toolchain libgfortran++ library but with all the "too new" symbols
   # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
-
   cp ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so tmp.so
   ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
-  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgfortran_sym_vers.5 tmp.so \
-    ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgfortran_sym_vers.5.json tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0 ${ARCH_STR}
   rm -v tmp.so
 
   # check the mangle
+  # first... there should be no `UND` symbols containing the mangle
+  if [[ "`readelf --dyn-sym -W ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0|grep ' UND '|grep '__HIDDEN'|wc -l`" != "0" ]]; then
+    echo "A hidden UND symbol was found, the hiding script did something unexpected";
+    exit 1;
+  fi
   get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0 system_like_syms
-  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgfortran_sym_vers.5 system_like_syms|grep "OK"
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgfortran_sym_vers.5.json system_like_syms ${ARCH_STR}|grep "OK"
 
   unset DEBUG
   popd
@@ -451,13 +464,18 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
   cp ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s.so.1 tmp.so
   ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
-  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgcc_s_sym_vers.1 tmp.so \
-    ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgcc_s_sym_vers.1.json tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1 ${ARCH_STR}
   rm -v tmp.so
 
   # check the mangle
+  # first... there should be no `UND` symbols containing the mangle
+  if [[ "`readelf --dyn-sym -W ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1|grep ' UND '|grep '__HIDDEN'|wc -l`" != "0" ]]; then
+    echo "A hidden UND symbol was found, the hiding script did something unexpected";
+    exit 1;
+  fi
   get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1 system_like_syms
-  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgcc_s_sym_vers.1 system_like_syms|grep "OK"
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgcc_s_sym_vers.1.json system_like_syms ${ARCH_STR}|grep "OK"
 
   unset DEBUG
   popd

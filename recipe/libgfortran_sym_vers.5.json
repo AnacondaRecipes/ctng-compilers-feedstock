@@ -1,0 +1,7 @@
+{"aarch64": [
+    "GFORTRAN_8",
+    "GFORTRAN_F2C_8"],
+ "x86_64": [
+    "GFORTRAN_8",
+    "GFORTRAN_F2C_8"]
+}
