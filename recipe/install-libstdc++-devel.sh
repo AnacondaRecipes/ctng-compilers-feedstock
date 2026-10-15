@@ -61,4 +61,10 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
     the static library, so try that secondarily.  */
   ${oformat}
   ${libstdcxx_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so
+
+  # remove this symlink and replace with link to toolchain linker script,
+  # it is of no use as part of the runtime
+  rm -v -f ${PREFIX}/lib/libstdc++.so
+  ln -v -s ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libstdc++.so ${PREFIX}/lib/libstdc++.so
+
 fi

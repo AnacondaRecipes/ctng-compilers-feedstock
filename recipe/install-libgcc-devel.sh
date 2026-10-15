@@ -59,5 +59,10 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   ${oformat}
   ${libgcc_s_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgcc_s.so
 
+  # remove this symlink and replace with link to toolchain linker script,
+  # it is of no use as part of the runtime
+  rm -v -f ${PREFIX}/lib/libgcc_s.so
+  ln -v -s ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgcc_s.so ${PREFIX}/lib/libgcc_s.so
+
 fi
 

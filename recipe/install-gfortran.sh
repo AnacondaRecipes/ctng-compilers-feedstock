@@ -85,9 +85,13 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
     the static library, so try that secondarily.  */
   ${oformat}
   ${libgfortran_so_link}" > ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgfortran.so
+
+  # remove this symlink and replace with link to toolchain linker script,
+  # it is of no use as part of the runtime
+  rm -v -f ${PREFIX}/lib/libgfortran.so
+  ln -v -s ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/libgfortran.so ${PREFIX}/lib/libgfortran.so
+
 fi
-
-
 
 set +x
 # Strip executables, we may want to install to a different prefix

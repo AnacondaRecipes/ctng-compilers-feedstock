@@ -27,3 +27,9 @@ find ${PREFIX}/lib -name "*\.la" -exec rm -v -rf {} -v \;
 # Install Runtime Library Exception
 install -Dm644 ${SRC_DIR}/COPYING.RUNTIME \
         ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
+
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # remove this symlink, the toolchain explicitly sets DT_NEEDED as libstdc++.so.6
+  # and the libstdcxx-devel package symlinks this to the toolchain linker script
+  rm -v -f ${PREFIX}/lib/libstdc++.so
+fi

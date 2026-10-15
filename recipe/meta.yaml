@@ -1,5 +1,5 @@
 {% set version = gcc_version %}
-{% set build_num = 8 %}
+{% set build_num = 9 %}
 
 {% if gcc_maj_ver is not defined %}
 {% set gcc_maj_ver = 15 %}
@@ -531,7 +531,10 @@ outputs:
         - file
       commands:
         {% if cross_target_platform.startswith("linux-") %}
-        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so
+        # manylinux has the unversioned DSO as a linker script, main it's a link to the DSO
+        - test -f ${PREFIX}/lib/libgfortran.so
+        # this file comes in with the gcc_impl-<platform> package, it doesn't exist on manylinux for now.
+        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so                               # [gcc_flavor == "manylinux"]
         - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so                             # [gcc_flavor != "manylinux"]
@@ -615,7 +618,9 @@ outputs:
     test:
       commands:
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so
-        - test -f ${PREFIX}/lib/libstdc++.so
+        # manylinux installs the unversioned DSO as a linker script, its not in the runtime
+        - test -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor != "manylinux"]
+        - test ! -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor == "manylinux"]
         - test -f ${PREFIX}/lib/libstdc++.so.6
         - test -f ${PREFIX}/lib/libstdc++.so.6.0.34
         - test -f ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
@@ -742,7 +747,9 @@ outputs:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       commands:
-        - test -f ${PREFIX}/lib/libgcc_s.so
+        # manylinux installs the unversioned DSO as a linker script, its not part of runtime
+        - test -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor != "manylinux"]
+        - test ! -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor == "manylinux"]
         - test -f ${PREFIX}/lib/libgcc_s.so.1
         # libgcc should not ship the libgomp, which has its own output.
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
@@ -779,7 +786,10 @@ outputs:
         - libgfortran {{ gcc_version }}
     test:
       commands:
-        - test -f ${PREFIX}/lib/libgfortran.so
+        # on manylinux the toolchain provides the unversioned DSO as a linker script
+        # it's not part of the runtime.
+        - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/libgfortran.so.5
         - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
         - ls ${PREFIX}/lib/libgfortran*system*.so.* >/dev/null 2>&1 && exit 1
@@ -809,7 +819,7 @@ outputs:
         - libgfortran-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test -f ${PREFIX}/lib/libgfortran.so
+        - test -f ${PREFIX}/lib/libgfortran.so # [gcc_flavor != "manylinux"]
     about:
       summary: The GNU Fortran Runtime Library
       home: https://gcc.gnu.org/

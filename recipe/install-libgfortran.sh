@@ -16,3 +16,9 @@ fi
 # Install Runtime Library Exception
 install -Dm644 $SRC_DIR/COPYING.RUNTIME \
         ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
+
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # remove this symlink, the toolchain explicitly sets DT_NEEDED as libgfortran.so.5
+  # and the gfortran package symlinks this to the toolchain linker script
+  rm -v -f ${PREFIX}/lib/libgfortran.so
+fi
