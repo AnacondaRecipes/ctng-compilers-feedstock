@@ -176,7 +176,7 @@ CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
 # Setting the CPU_COUNT=1 lets you see which job failed!
 # CPU_COUNT=1
 if [[ "$gcc_flavor" == "manylinux" ]]; then
-  make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now
+  make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now profiledbootstrap
 else
   make -j${CPU_COUNT}
 fi
