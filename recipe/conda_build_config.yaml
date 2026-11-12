@@ -45,5 +45,5 @@ with_conda_specs:
   - true
   - false
 gcc_flavor:
-  - main
-  - manylinux
+  - main       # [not ANACONDA_ROCKET_ENABLE_MANYLINUX]
+  - manylinux  # [ANACONDA_ROCKET_ENABLE_MANYLINUX]
