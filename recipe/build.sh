@@ -4,6 +4,11 @@ set -ex
 
 source ${RECIPE_DIR}/setup_compiler.sh
 
+ln -s mpfr-* mpfr
+ln -s mpc-* mpc
+ln -s gmp-* gmp
+ln -s isl-* isl
+
 # ensure patch is applied
 grep 'conda-forge:: allow' gcc/gcc.c*
 
@@ -53,7 +58,7 @@ export gcc_cv_objdump=$OBJDUMP_FOR_TARGET
 
 ls $BUILD_PREFIX/bin/
 
-./contrib/download_prerequisites
+# ./contrib/download_prerequisites
 
 # We want CONDA_PREFIX/usr/lib not CONDA_PREFIX/usr/lib64 and this
 # is the only way. It is incompatible with multilib (obviously).
@@ -71,8 +76,61 @@ if [[ "$gcc_version" == "11."* && "$build_platform" != "$target_platform" ]]; th
   sed -i.bak 's@-I$glibcxx_srcdir/libsupc++@-I$glibcxx_srcdir/libsupc++ -nostdinc++@g' libstdc++-v3/configure
 fi
 
+# https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L750
+touch -r isl-0.24/m4/ax_prog_cxx_for_build.m4 isl-0.24/m4/ax_prog_cc_for_build.m4
+
+./contrib/gcc_update --touch
+
+OPT_FLAGS=""
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1
+  OPT_FLAGS="-O2 -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -grecord-gcc-switches -fasynchronous-unwind-tables -fstack-clash-protection"
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=[123]//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-D_FORTIFY_SOURCE=[123]//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/\(-Wp,\)\?-U_FORTIFY_SOURCE//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-flto=auto//g;s/-flto//g;s/-ffat-lto-objects//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-m64//g;s/-m32//g;s/-m31//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-mfpmath=sse/-mfpmath=sse -msse2/g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/ -pipe / /g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-fno-omit-frame-pointer//g;s/-mbackchain//g;s/-mno-omit-leaf-frame-pointer//g'`
+  OPT_FLAGS=`echo $OPT_FLAGS|sed -e 's/-Werror=format-security/-Wformat-security/g'`
+  OPT_FLAGS=`echo "$OPT_FLAGS" | sed -e 's/[[:blank:]]\+/ /g'`
+  case "$OPT_FLAGS" in
+    *-fasynchronous-unwind-tables*)
+      sed -i -e 's/-fno-exceptions /-fno-exceptions -fno-asynchronous-unwind-tables /' \
+        libgcc/Makefile.in
+      ;;
+  esac
+fi
+
 mkdir -p build
 cd build
+
+GCC_CONFIGURE_OPTIONS+=(--prefix="$PREFIX")
+GCC_CONFIGURE_OPTIONS+=(--with-slibdir="$PREFIX/lib")
+GCC_CONFIGURE_OPTIONS+=(--libdir="$PREFIX/lib")
+GCC_CONFIGURE_OPTIONS+=(--mandir="$PREFIX/man")
+GCC_CONFIGURE_OPTIONS+=(--build=$BUILD)
+GCC_CONFIGURE_OPTIONS+=(--host=$HOST)
+GCC_CONFIGURE_OPTIONS+=(--target=$TARGET)
+GCC_CONFIGURE_OPTIONS+=(--enable-languages=c,c++,fortran,objc,obj-c++)
+GCC_CONFIGURE_OPTIONS+=(--enable-__cxa_atexit)
+GCC_CONFIGURE_OPTIONS+=(--disable-libmudflap)
+GCC_CONFIGURE_OPTIONS+=(--enable-libgomp)
+GCC_CONFIGURE_OPTIONS+=(--disable-libssp)
+GCC_CONFIGURE_OPTIONS+=(--enable-libquadmath)
+GCC_CONFIGURE_OPTIONS+=(--enable-libquadmath-support)
+GCC_CONFIGURE_OPTIONS+=(--enable-lto)
+GCC_CONFIGURE_OPTIONS+=(--enable-target-optspace)
+GCC_CONFIGURE_OPTIONS+=(--enable-plugin)
+GCC_CONFIGURE_OPTIONS+=(--enable-gold)
+GCC_CONFIGURE_OPTIONS+=(--disable-nls)
+GCC_CONFIGURE_OPTIONS+=(--disable-multilib)
+GCC_CONFIGURE_OPTIONS+=(--enable-long-long)
+GCC_CONFIGURE_OPTIONS+=(--with-sysroot=${SYSROOT_DIR})
+GCC_CONFIGURE_OPTIONS+=(--with-build-sysroot=${BUILD_PREFIX}/${TARGET}/sysroot)
+GCC_CONFIGURE_OPTIONS+=(--with-native-system-header-dir=${NATIVE_SYSTEM_HEADER_DIR})
+GCC_CONFIGURE_OPTIONS+=(--with-gxx-include-dir="${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/include/c++")
 
 # We need to explicitly set the gxx include dir because previously
 # with ct-ng, native build was not considered native because
@@ -90,34 +148,336 @@ if [[ "$TARGET" == *linux* ]]; then
   export LIBS="-Wl,--undefined=dladdr -ldl ${LIBS:-}"
 fi
 
-../configure \
-  --prefix="$PREFIX" \
-  --with-slibdir="$PREFIX/lib" \
-  --libdir="$PREFIX/lib" \
-  --mandir="$PREFIX/man" \
-  --build=$BUILD \
-  --host=$HOST \
-  --target=$TARGET \
-  --enable-languages=c,c++,fortran,objc,obj-c++ \
-  --enable-__cxa_atexit \
-  --disable-libmudflap \
-  --enable-libgomp \
-  --disable-libssp \
-  --enable-libquadmath \
-  --enable-libquadmath-support \
-  --enable-lto \
-  --enable-target-optspace \
-  --enable-plugin \
-  --enable-gold \
-  --disable-nls \
-  --disable-multilib \
-  --enable-long-long \
-  --with-sysroot=${SYSROOT_DIR} \
-  --with-build-sysroot=${BUILD_PREFIX}/${TARGET}/sysroot \
-  --with-native-system-header-dir=${NATIVE_SYSTEM_HEADER_DIR} \
-  --with-gxx-include-dir="${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/include/c++" \
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  GCC_CONFIGURE_OPTIONS+=(--enable-initfini-array)
+  GCC_CONFIGURE_OPTIONS+=(--enable-host-pie)
+  GCC_CONFIGURE_OPTIONS+=(--enable-host-bind-now)
+  GCC_CONFIGURE_OPTIONS+=(--enable-gnu-indirect-function)
+  GCC_CONFIGURE_OPTIONS+=(--with-linker-hash-style=gnu)
+  GCC_CONFIGURE_OPTIONS+=(--enable-libstdcxx-backtrace)
+  GCC_CONFIGURE_OPTIONS+=(--enable-gnu-unique-object)
+  GCC_CONFIGURE_OPTIONS+=(--enable-linker-build-id)
+  GCC_CONFIGURE_OPTIONS+=(--disable-libunwind-exceptions)
+  GCC_CONFIGURE_OPTIONS+=(--enable-checking=release)
+  GCC_CONFIGURE_OPTIONS+=(--enable-target-optspace=no)
+  # --with-system-zlib
+  # We don't use this because it breaks our install scripts.
+  # Would need to investigate if we can enable that.
+  # --with-gcc-major-version-only.
+fi
+
+CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
+  CXXFLAGS="`echo " $OPT_FLAGS " | sed 's/ -Wall / /g;s/ -fexceptions / /g' \
+  | sed 's/ -Wformat-security / -Wformat -Wformat-security /'`" \
+  XCFLAGS="$OPT_FLAGS" TCFLAGS="$OPT_FLAGS" \
+  ../configure \
   "${GCC_CONFIGURE_OPTIONS[@]}"
 
 # Setting the CPU_COUNT=1 lets you see which job failed!
-#CPU_COUNT=1
-make -j${CPU_COUNT}
+# CPU_COUNT=1
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now profiledbootstrap
+else
+  make -j${CPU_COUNT}
+fi
+
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+
+  function get_nonhidden_ver_symbols() {
+    # This is used to dump exported non-HIDDEN-prefixed versioned symbols to file
+    # Usage:
+    # get_nonhidden_ver_symbols <path/to/library_to_scrape.so> <path/to/outfile>
+    fname=$1
+    outfile=$2
+    readelf --dyn-sym -W ${fname}|grep -v ' UND '|grep -v __HIDDEN|grep @|sed -e 's/@@/@/g'|cut -d @ -f 2|cut -d ' ' -f1|sort|uniq > ${outfile}
+  }
+
+  # get arch string, symbol masks are keyed on it.
+  source $RECIPE_DIR/get_cpu_arch.sh
+  ARCH_STR=`get_cpu_arch ${target_platform}`
+
+  # ------------------
+  # libstdc++ handling
+  # ------------------
+  # Based on: https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L1217-1232
+  # At SHA: 4cab5cef6b1af1fbabe494dc4de62a7e6aa9048d
+  # Modified to print how to "read" a difference in ABI to stdout
+
+  mkdir -p libstdc++_compat_test
+  pushd libstdc++_compat_test
+
+  # NOTE: The ABI surface differences are only computed if `DEBUG` is set below, this is
+  # so that there's no need for the system to carry e.g. libstdc++ (albeit unlikely it is
+  # functioning without it).
+
+  DEBUG=0
+
+  if [[ "${DEBUG}" == "1" ]]; then
+    readelf -Ws /usr/lib64/libstdc++.so.6 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+      | LC_ALL=C sort -u > system.abilist
+
+    # This is in the "build folder"
+    readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+      | LC_ALL=C sort -u > vanilla.abilist
+
+    diff -up system.abilist vanilla.abilist \
+      | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+  fi # DEBUG
+
+  ${SRC_DIR}/build/gcc/xgcc \
+    -B ${SRC_DIR}/build/gcc \
+    -shared \
+    -o libstdc++_nonshared.so \
+    -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a \
+    -Wl,--no-whole-archive /usr/lib64/libstdc++.so.6
+
+  readelf -Ws libstdc++_nonshared.so \
+    | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+    | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+    | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GLIBCXX_\(LDBL_\)\?[0-9.]*//;s/@@CXXABI_TM_[0-9.]*//;s/@@CXXABI_FLOAT128//;s/@@CXXABI_\(LDBL_\)\?[0-9.]*//' \
+    | LC_ALL=C sort -u > nonshared.abilist
+
+  if [[ x"${DEBUG}" == x"1" ]]; then
+    echo ====================NONSHARED=========================
+    ldd -d -r ./libstdc++_nonshared.so || :
+    ldd -u ./libstdc++_nonshared.so || :
+    echo "If there is a difference here it might indicate a problem. Anything which is '-' "
+    echo "is present in the 'difference' between the toolchain and the system library "
+    echo "ABI list but not present in the static archive, i.e. the archive is deficient "
+    echo "(and '+' is the inverse)."
+    diff -up system2vanilla.abilist.diff nonshared.abilist || :
+    readelf -Ws ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_nonshared80.a | grep HIDDEN.*UND | grep -v __dso_handle || :
+    echo ====================NONSHARED END=====================
+  fi # DEBUG
+  rm -f libstdc++_nonshared.so
+
+  # This part is *not* derived from:
+  # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
+  # and is specific to the Anaconda toolchain.
+  #
+  # Create a copy of the newly built toolchain libstdc++ library but with all the "too new" symbols
+  # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+
+  # copy the lib, strip it, then mangle
+  cp ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++.so.6 tmp.so
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25.json tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34 ${ARCH_STR}
+  rm -v tmp.so
+
+  # check the mangle
+  # first... there should be no `UND` symbols containing the mangle
+  if [[ "`readelf --dyn-sym -W ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34|grep ' UND '|grep '__HIDDEN'|wc -l`" != "0" ]]; then
+    echo "A hidden UND symbol was found, the hiding script did something unexpected";
+    exit 1;
+  fi
+  get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libstdc++-v3/src/.libs/libstdc++_system_like.so.6.0.34 system_like_syms
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libstdcxx_sym_vers.6.0.25.json system_like_syms ${ARCH_STR}|grep "OK"
+
+  unset DEBUG
+  popd
+
+
+  # --------------------
+  # libgfortran handling
+  # --------------------
+  # Based on: https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L1217-1232
+  # At SHA: 4cab5cef6b1af1fbabe494dc4de62a7e6aa9048d
+  # Modified for use against the libgfortran library and with an additional print of
+  # how to "read" a difference in ABI to stdout.
+
+  mkdir -p libgfortran_compat_test
+  pushd libgfortran_compat_test
+
+  # NOTE: The ABI surface differences are only computed if `DEBUG` is set below, this is
+  # so that there's no need for the system to carry libgfortran (it's not usually present
+  # by default).
+
+  DEBUG=0
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo "doing readelf on system"
+    # system version
+    readelf -Ws /usr/lib64/libgfortran.so.5 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GFORTRAN_\?[0-9.]*//' \
+      | LC_ALL=C sort -u > system.abilist
+
+    echo "doing readelf on build dir"
+    # build dir version
+    readelf -Ws ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GFORTRAN_\?[0-9.]*//' \
+      | LC_ALL=C sort -u > vanilla.abilist
+
+
+    echo "doing diff"
+    diff -up system.abilist vanilla.abilist \
+      | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+
+  fi # DEBUG
+
+  echo "linking archive"
+  # NOTE: the gfortran archive seems to contain a copy of libgcc.a, do not add the default libs
+  ${SRC_DIR}/build/gcc/xgcc \
+    -B ${SRC_DIR}/build/gcc \
+    -shared \
+    -nodefaultlibs \
+    -o libgfortran_archive.so \
+    -Wl,--whole-archive ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_nonshared80.a
+
+  echo "readelf on linked archive"
+  readelf -Ws ./libgfortran_archive.so \
+    | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC_PRIVATE/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+    | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+    | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GFORTRAN_\?[0-9.]*//' \
+    | LC_ALL=C sort -u > nonshared.abilist
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo ====================NONSHARED=========================
+    ldd -d -r ./libgfortran_archive.so || :
+    ldd -u ./libgfortran_archive.so || :
+    echo "If there is a difference here it might indicate a problem. Anything which is '-' "
+    echo "is present in the 'difference' between the toolchain and the system library "
+    echo "ABI list but not present in the static archive, i.e. the archive is deficient "
+    echo "(and '+' is the inverse)."
+    diff -up system2vanilla.abilist.diff nonshared.abilist || :
+    echo ====================NONSHARED END=====================
+  fi # DEBUG
+
+  # This part is *not* derived from:
+  # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
+  # and is specific to the Anaconda toolchain.
+  #
+  # Create a copy of the newly built toolchain libgfortran++ library but with all the "too new" symbols
+  # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+  cp ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran.so tmp.so
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgfortran_sym_vers.5.json tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0 ${ARCH_STR}
+  rm -v tmp.so
+
+  # check the mangle
+  # first... there should be no `UND` symbols containing the mangle
+  if [[ "`readelf --dyn-sym -W ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0|grep ' UND '|grep '__HIDDEN'|wc -l`" != "0" ]]; then
+    echo "A hidden UND symbol was found, the hiding script did something unexpected";
+    exit 1;
+  fi
+  get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libgfortran/.libs/libgfortran_system_like.so.5.0.0 system_like_syms
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgfortran_sym_vers.5.json system_like_syms ${ARCH_STR}|grep "OK"
+
+  unset DEBUG
+  popd
+
+  # --------------------
+  # libgcc_s handling
+  # --------------------
+  # Based on: https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec#L1217-1232
+  # At SHA: 4cab5cef6b1af1fbabe494dc4de62a7e6aa9048d
+  # Modified for use against the libgcc_s library and with an additional print of
+  # how to "read" a difference in ABI to stdout.
+  # The handling here is different to libstdc++ and libgfortran in that there isn't a specific toolset
+  # variant provided through the patches. The linker scripts do something like GROUP(/system_path/libgcc_s.so.1 -lgcc)
+  #
+  # To achieve the desired outcome, we rely on the knowledge that:
+  # * the nonshared80 equivalent system libraries are based on GCC 8
+  # * all the symbols in libgcc_s.so.1 are versioned
+  # * we've got a toolcahin that produces higher than GCC 8 versioned symbols, but they are only ever of version 11, 13, 14.
+  #
+  # NOTE: to test the linker script, the compiler driver needs to be passed the `--shared-libgcc` option
+  # as the default linkage for libgcc in this toolchain is static.
+
+  mkdir -p libgcc_s_compat_test
+  pushd libgcc_s_compat_test
+
+  # NOTE: The ABI surface differences are only computed if `DEBUG` is set below..
+
+  DEBUG=0
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo "doing readelf on system"
+    # system version
+    readelf -Ws /usr/lib64/libgcc_s.so.1 \
+      | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+      | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+      | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;s/@@GCC_\?[0-9.]*//' \
+      | LC_ALL=C sort -u > system.abilist
+
+  fi # DEBUG
+
+  echo "doing readelf on build dir"
+  # build dir version
+  readelf -Ws ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s.so.1 \
+    | sed -n '/\.symtab/,$d;/ UND /d;/@GLIBC/d;/\(GLOBAL\|WEAK\|UNIQUE\)/p' \
+    | awk '{ if ($4 == "OBJECT") { printf "%s %s %s %s %s\n", $8, $4, $5, $6, $3 } else { printf "%s %s %s %s\n", $8, $4, $5, $6 }}' \
+    | sed 's/ UNIQUE / GLOBAL /;s/ WEAK / GLOBAL /;' \
+    | LC_ALL=C sort -u > toolchain.versioned_abilist
+
+
+  if [[ "${DEBUG}" == "1" ]]; then
+    # this is the symbol stripped version like in the libstdc++/libgfortran handling
+    cat toolchain.versioned_abilist \
+      | sed 's/@@GCC_\?[0-9.]*//' > vanilla.abilist
+
+    echo "doing diff"
+    diff -up system.abilist vanilla.abilist \
+      | awk '/^\+\+\+/{next}/^\+/{print gensub(/^+(.*)$/,"\\1","1",$0)}' > system2vanilla.abilist.diff
+
+  fi # DEBUG
+
+  # This is where the differences to the nonshared* treatment used in libstdc++ etc above start
+  # to occur. The replace_list.txt is generated from knowledge opposed to something created.
+
+  # The "toolchain.versioned_abilist" contains the toolchain ABI as it is built, we're now going to mangle it
+  # to create a nonshared.abilist. Any symbol which is versioned GCC_{11, 13, 14} needs to be retained in its
+  # nonversioned form.
+  echo "creating nonshared abilist"
+  cat toolchain.versioned_abilist|grep -e '@@GCC_11' -e '@@GCC_13' -e '@@GCC_14'|sed 's/@@GCC_\?[0-9.]*//' > nonshared.abilist
+
+  if [[ "${DEBUG}" == "1" ]]; then
+
+    echo ====================NONSHARED=========================
+    echo "If there is a difference here it might indicate a problem. Anything which is '-' "
+    echo "is present in the 'difference' between the toolchain and the system library "
+    echo "ABI list but not present in the static archive, i.e. the archive is deficient "
+    echo "(and '+' is the inverse)."
+    diff -up system2vanilla.abilist.diff nonshared.abilist || :
+    echo ====================NONSHARED END=====================
+  fi # DEBUG
+
+  # This part is *not* derived from:
+  # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/blob/r8/SPECS/gcc-toolset-15-gcc.spec
+  # and is specific to the Anaconda toolchain.
+  #
+  # Create a copy of the newly built toolchain libgcc_s library but with all the "too new "symbols
+  # listed in the archive prefixed with "HIDDEN" so that nothing can dynamically link against them.
+  cp ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s.so.1 tmp.so
+  ${BUILD_PREFIX}/bin/${TARGET}-strip --strip-all -v tmp.so
+  python ${RECIPE_DIR}/symbol_hider.py --keep_list ${RECIPE_DIR}/libgcc_s_sym_vers.1.json tmp.so \
+    ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1 ${ARCH_STR}
+  rm -v tmp.so
+
+  # check the mangle
+  # first... there should be no `UND` symbols containing the mangle
+  if [[ "`readelf --dyn-sym -W ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1|grep ' UND '|grep '__HIDDEN'|wc -l`" != "0" ]]; then
+    echo "A hidden UND symbol was found, the hiding script did something unexpected";
+    exit 1;
+  fi
+  get_nonhidden_ver_symbols ${SRC_DIR}/build/${TARGET}/libgcc/libgcc_s_system_like.so.1 system_like_syms
+  python ${RECIPE_DIR}/check_symbols.py ${RECIPE_DIR}/libgcc_s_sym_vers.1.json system_like_syms ${ARCH_STR}|grep "OK"
+
+  unset DEBUG
+  popd
+
+fi

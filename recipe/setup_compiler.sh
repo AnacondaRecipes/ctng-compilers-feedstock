@@ -28,9 +28,12 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
       "binutils_impl_${cross_target_platform}=${binutils_version}" \
       "${cross_target_stdlib}_${cross_target_platform}=${cross_target_stdlib_version}" \
       make \
+      "flex=2.6.4" \
+      "py-lief=1" \
       ${extra_pkgs[@]}
 fi
 
+# export PATH=/opt/rh/gcc-toolset-15/root/usr/bin:$SRC_DIR/cf-compilers/bin:$PATH
 export PATH=$SRC_DIR/cf-compilers/bin:$PATH
 export BUILD_PREFIX=$SRC_DIR/cf-compilers
 

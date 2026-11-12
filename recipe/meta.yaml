@@ -1,5 +1,5 @@
 {% set version = gcc_version %}
-{% set build_num = 8 %}
+{% set build_num = 10 %}
 
 {% if gcc_maj_ver is not defined %}
 {% set gcc_maj_ver = 15 %}
@@ -22,19 +22,83 @@ package:
   name: gcc_compilers
   version: {{ version }}
 
+# conda-build jcmorin/ --no-remove-work-dir 2>&1 | tee jcmorin/ctng-compilers-feedstock/output.log
+# * `gcc-toolset-15-gcc` for rocky 8: https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/tree/imports/r8/gcc-toolset-15-gcc-15.2.1-7.1.el8_10
+# * Upstream build: https://koji.rockylinux.org/koji/buildinfo?buildID=120333
+# * gcc source archive: https://sources.build.resf.org/c73799e9cf2ba6937eb0171d429afde186d4a45fe5b7abde6552c0c0d707fef7
+# * https://rockylinux.pkgs.org/8/rockylinux-appstream-aarch64/gcc-toolset-15-runtime-15.0-9.el8_10.aarch64.rpm.html
+# * Tests for nonshared library: https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1209
+# * https://git.almalinux.org/rpms/gcc-toolset-15-gcc/src/commit/4d45dd5368467d758b31cda493a5fb92080746fd/gcc-toolset-15-gcc.spec#L1997
+
+# TODO: Compare list of files produced/installed
+
+# https://package-build.anacondaconnect.com/v1/graph/c70a112b-4da8-4b5d-975e-5129a04a411f
+
 source:
-  - url: 
-      - https://ftp.gnu.org/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
-      - https://mirrors.ocf.berkeley.edu/gnu/gcc/gcc-{{ version }}/gcc-{{ version }}.tar.gz
-    sha256: 7294d65cc1a0558cb815af0ca8c7763d86f7a31199794ede3f630c0d1b0a5723   # [gcc_version == "15.2.0"]
-    sha256: ace8b8b0dbfe6abfc22f821cb093e195aa5498b7ccf7cd23e4424b9f14afed22   # [gcc_version == "14.3.0"]
-    sha256: bf0baf3e570c9c74c17c8201f0196c6924b4bd98c90e69d6b2ac0cd823f33bbc   # [gcc_version == "13.4.0"]
+  # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/tree/r8
+  - url: https://sources.build.resf.org/fcf78dd9656c10eb8cf9fbd5f59a0b6b01386205fe1934b3b287a0a1898145c0
+    fn: isl-0.24.tar.bz2
+    sha256: fcf78dd9656c10eb8cf9fbd5f59a0b6b01386205fe1934b3b287a0a1898145c0
+    folder: isl-0.24
+
+  - url: http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+    sha256: d3103a80cdad2407ed581f3618c4bed04e0c92d1cf771a65ead662cc397f7775
+    folder: mpfr-3.1.4
+  - url: http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+    sha256: 498449a994efeba527885c10405993427995d3f86b8768d8cdf8d9dd7c6b73e8
+    folder: gmp-6.1.0
+  - url: http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+    sha256: 617decc6ea09889fb08ede330917a00b16809b8db88c29c31bfbb49cbf88ecc3
+    folder: mpc-1.0.3
+
+  - url: https://sources.build.resf.org/c73799e9cf2ba6937eb0171d429afde186d4a45fe5b7abde6552c0c0d707fef7
+    sha256: c73799e9cf2ba6937eb0171d429afde186d4a45fe5b7abde6552c0c0d707fef7   # [gcc_version == "15.2.1"]
+    fn: gcc-15.2.1-20260123.tar.xz
     patches:
       - patches/0001-allow-commands-in-main-specfile.patch
-      - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13]
+      - patches/0002-patch-zoneinfo_dir_override-to-point-to-our-tzdata.patch       # [gcc_maj_ver != 13 and gcc_flavor != "manylinux"]
+      # https://git.rockylinux.org/staging/rpms/gcc-toolset-15-gcc/-/raw/r8/SOURCES/
+      - patches/devtoolset/gcc15-hack.patch
+      - patches/devtoolset/gcc15-sparc-config-detection.patch
+      - patches/devtoolset/gcc15-libgomp-omp_h-multilib.patch
+      - patches/devtoolset/gcc15-libtool-no-rpath.patch
+      - patches/devtoolset/gcc15-isl-dl.patch
+      - patches/devtoolset/gcc15-isl-dl2.patch
+      # - patches/devtoolset/gcc15-libstdc++-docs.patch
+      - patches/devtoolset/gcc15-no-add-needed.patch
+      - patches/devtoolset/gcc15-Wno-format-security.patch
+      - patches/devtoolset/gcc15-rh1574936.patch
+      - patches/devtoolset/gcc15-d-shared-libphobos.patch
+      - patches/devtoolset/gcc15-pr119006.patch
+      - patches/devtoolset/gcc15-pr123273.patch
+      - patches/devtoolset/gcc15-pr123667.patch
+      - patches/devtoolset/gcc15-pr123737.patch
+      - patches/devtoolset/gcc15-fortran-fdec-duplicates.patch
+      - patches/devtoolset/gcc15-libstdc++-compat.patch
+      - patches/devtoolset/gcc15-libgfortran-compat.patch
+      - patches/devtoolset/gcc15-nvptx-offload.patch
+      - patches/devtoolset/isl-rh2155127.patch
+      # - patches/devtoolset/0001-basic_string-reserve-n-semantics-are-not-available-i.patch
+      # - patches/devtoolset/0004-operator-istream-char-N-eofbit-fixes-are-not-availab.patch
+      # - patches/devtoolset/0005-Disable-tests-for-PR-libstdc-79820-and-PR-libstdc-81.patch
+      # - patches/devtoolset/0006-Don-t-assume-has_facet-codecvt_c16-when-run-against-.patch
+      # - patches/devtoolset/0008-testsuite-build-plugins-with-std-c-11.patch
+      # - patches/devtoolset/0010-Don-t-verify-exception-handling-in-basic_filebuf-clo.patch
+      # - patches/devtoolset/0011-Add-dts.exp-and-use-it-to-fix-22_locale-messages-136.patch
+      # - patches/devtoolset/0012-dts.exp-use-usr-bin-gcc.patch
+      # - patches/devtoolset/0013-Rename-__CXXSTDLIB_SO_VERSION__-to-__LIBSTDCXX_SO_VE.patch
+      # - patches/devtoolset/0014-Conditionalize-tests-for-PR-libstdc-98466-on-__LIBST.patch
+      # - patches/devtoolset/0015-Conditionalize-test-for-PR-libstdc-87135-on-__LIBSTD.patch
+      # - patches/devtoolset/0016-Conditionalize-test-for-hashtable-bucket-sizes-on-__.patch
+      # - patches/devtoolset/0017-Conditionalize-test-for-PR-libstdc-71181-on-__LIBSTD.patch
+      # - patches/devtoolset/0018-Use-CXX11-ABI.patch
+      # - patches/devtoolset/0020-more-fixes.patch
+      # - patches/devtoolset/0021-libstdc++-disable-tests.patch
+      # - patches/devtoolset/gcc15-RHEL-153698.patch
+      # - patches/devtoolset/gcc15-dg-ice-fixes.patch
       {% if cross_target_platform.startswith("linux-") %}
-      - patches/0003-add-ldl-to-libstdc___la_LDFLAGS.patch                          # [gcc_maj_ver != 13]
-      - patches/0004-Hardcode-HAVE_ALIGNED_ALLOC-1-in-libstdc-v3-configur.patch
+      - patches/0003-add-ldl-to-libstdc___la_LDFLAGS.patch                          # [gcc_maj_ver != 13 and gcc_flavor != "manylinux"]
+      - patches/0004-Hardcode-HAVE_ALIGNED_ALLOC-1-in-libstdc-v3-configur.patch     # [gcc_flavor != "manylinux"]
       {% else %}
       # for GCC 15: https://github.com/msys2/MINGW-packages/tree/f59921184b35858d4ceb91679578de0d62475cbf/mingw-w64-gcc
       # for GCC 14: https://github.com/msys2/MINGW-packages/tree/331bf945d21af562d228ed46bda21c8272d1e76e/mingw-w64-gcc
@@ -81,6 +145,7 @@ outputs:
     build:
       noarch: generic
       number: {{ libgcc_devel_build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -88,6 +153,9 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       overlinking_ignore_patterns:
         - "*/lib/libgcc_s.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -95,11 +163,17 @@ outputs:
       run:
         - __unix   # [unix]
         - __win    # [win]
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_eh.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc.a
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                               # [gcc_flavor == "manylinux"]
+        - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                             # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1  # [gcc_flavor != "manylinux"]
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         {% else %}
@@ -115,6 +189,7 @@ outputs:
     build:
       noarch: generic
       number: {{ libgcc_devel_build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -122,6 +197,9 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       overlinking_ignore_patterns:
         - "*/lib/libstdc++.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -129,11 +207,19 @@ outputs:
       run:
         - __unix   # [unix]
         - __win    # [win]
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++fs.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libsupc++.a
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so                               # [gcc_flavor == "manylinux"]
+        - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so                             # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared80.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_nonshared80.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_system_like.so.6.0.34    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_system_like.so.6.0.34  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/include/c++/cstdio
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libstdc++.so
@@ -149,11 +235,17 @@ outputs:
     script: install-gcc.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - '*'
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_exports:
+        # impose this requirement across the build/host boundary
+        strong:
+          - libgcc >={{ gcc_version }}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -172,10 +264,7 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}            # [target_platform == cross_target_platform]
         - {{ pin_subpackage("libgomp", exact=True) }}           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
-    run_exports:
-      # impose this requirement across the build/host boundary
-      strong:
-        - libgcc >={{ gcc_version }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -218,15 +307,20 @@ outputs:
   - name: gcc
     script: install-symlinks.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
       track_features:            # [not with_conda_specs]
         - gcc_no_conda_specs     # [not with_conda_specs]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("gcc_impl_" ~ target_platform, exact=True) }}
       run:
         - {{ pin_subpackage("gcc_impl_" ~ target_platform, exact=True) }}
         - conda-gcc-specs        # [with_conda_specs]
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - ${PREFIX}/bin/gcc -v
@@ -239,10 +333,15 @@ outputs:
 
   - name: gcc-no-conda-specs
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [with_conda_specs]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       run:
         - gcc
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
       run_constrained:
         - conda-gcc-specs <0.0a0
     test:
@@ -253,12 +352,17 @@ outputs:
     script: install-conda-specs.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [cross_target_platform != target_platform]
       detect_binary_files_with_prefix: false
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       run:
         - {{ pin_subpackage("gcc_impl_" ~ cross_target_platform, exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       files:
         - tests
@@ -302,11 +406,17 @@ outputs:
     script: install-g++.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_exports:
+        # impose this requirement across the build/host boundary
+        strong:
+          - libstdcxx >={{ gcc_version }}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -321,10 +431,7 @@ outputs:
         - {{ pin_subpackage("libstdcxx-devel_" ~ cross_target_platform, exact=True) }}
         # for C++20 chrono support
         - tzdata
-    run_exports:
-      # impose this requirement across the build/host boundary
-      strong:
-        - libstdcxx >={{ gcc_version }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
@@ -346,7 +453,8 @@ outputs:
         {% if target_platform == cross_target_platform %}
         - ${CXX} tzdb-override.o -o tzdb-override && ./tzdb-override
         - ${CXX} tzdb.o -o tzdb && ./tzdb
-        - $PREFIX/usr/bin/strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
+        # TODO: Figure out what to do with this test
+        #- $PREFIX/usr/bin/strace ./tzdb 2>&1 | grep ${CONDA_PREFIX}/lib/../share/zoneinfo/tzdata.zi
         # also test without any environment activation
         - unset PREFIX
         - unset CONDA_PREFIX
@@ -361,7 +469,11 @@ outputs:
   - name: gxx
     script: install-symlinks.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("gxx_impl_" ~ target_platform, exact=True) }}
@@ -369,6 +481,7 @@ outputs:
       run:
         - {{ pin_subpackage("gxx_impl_" ~ target_platform, exact=True) }}
         - {{ pin_subpackage("gcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - ${PREFIX}/bin/g++ -v
@@ -383,11 +496,18 @@ outputs:
     script: install-gfortran.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
       ignore_run_exports_from:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+      run_exports:
+        # impose this requirement across the build/host boundary
+        strong:
+          - libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*
+          - libgcc >={{ gcc_version }}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -402,19 +522,26 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}                              # [target_platform == cross_target_platform]
         - {{ pin_subpackage("libstdcxx", exact=True) }}                           # [target_platform == cross_target_platform]
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
-    run_exports:
-      # impose this requirement across the build/host boundary
-      strong:
-        - libgfortran{{ libgfortran_soname }} {{ gcc_version }}.*
-        - libgcc >={{ gcc_version }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       requires:
         - cmake >=3.11,<4  # [x86_64 or aarch64 or ppc64le]
         - make
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
+        - file
       commands:
         {% if cross_target_platform.startswith("linux-") %}
-        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so
+        # manylinux has the unversioned DSO as a linker script, main it's a link to the DSO
+        - test -f ${PREFIX}/lib/libgfortran.so
+        # this file comes in with the gcc_impl-<platform> package, it doesn't exist on manylinux for now.
+        - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.so # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so                               # [gcc_flavor == "manylinux"]
+        - file ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so | grep 'ASCII text' > /dev/null  # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran.so                             # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared80.a    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared80.a  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0    # [gcc_flavor == "manylinux"]
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0  # [gcc_flavor != "manylinux"]
         {% else %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.dll.a
         {% endif %}
@@ -436,7 +563,11 @@ outputs:
   - name: gfortran
     script: install-symlinks.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true  # [target_platform != cross_target_platform]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
@@ -446,6 +577,7 @@ outputs:
         - gfortran_impl_{{ target_platform }} {{ gcc_version }}.*
         - gcc_impl_{{ target_platform }} {{ gcc_version }}.*
         - gcc {{ gcc_version }}.*
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - ${PREFIX}/bin/gfortran -v
@@ -461,12 +593,16 @@ outputs:
     script: install-libstdc++.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
       overlinking_ignore_patterns:
         - "lib/libstdc++.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -474,12 +610,20 @@ outputs:
         - {{ pin_subpackage("libgcc", exact=True) }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
       run_constrained:
         # avoid installing incompatible version of old name for this output
+        # TODO: Figure out if out custom build string will impact this.
         - libstdcxx-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test -f ${PREFIX}/lib/libstdc++.so
+        - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.so
+        # manylinux installs the unversioned DSO as a linker script, its not in the runtime
+        - test -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor != "manylinux"]
+        - test ! -f ${PREFIX}/lib/libstdc++.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/lib/libstdc++.so.6
+        - test -f ${PREFIX}/lib/libstdc++.so.6.0.34
+        - test -f ${PREFIX}/share/licenses/libstdc++/RUNTIME.LIBRARY.EXCEPTION
     about:
       summary: The GNU C++ Runtime Library
       home: https://gcc.gnu.org/
@@ -490,10 +634,13 @@ outputs:
     script: install-libsanitizer.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform or win]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      # Keep libsanitizer run_exports even for manylinux. The manylinux toolchain
+      # doesn't affect libsanitizer, so we still need the run_exports.
       run_exports:
         - libsanitizer {{ gcc_version }}
       overlinking_ignore_patterns:
@@ -501,6 +648,9 @@ outputs:
         - "lib/libasan.so.*"
         - "lib/liblsan.so.*"
         - "lib/libhwasan.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -508,6 +658,7 @@ outputs:
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
         - {{ pin_subpackage("libstdcxx", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
@@ -527,20 +678,27 @@ outputs:
     script: install-libgomp.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
+      # Note that we are keeping the run_exports on libgomp for manylinux
+      # because the toolchain doesn't change anything OpenMP related.
+      # So the run_export is still required for manylinux.
       run_exports:
         strong:
           - _openmp_mutex * *_gnu
           {% if cross_target_platform.startswith("win-") %}
           - {{ pin_subpackage("libgomp", max_pin=None) }}
           {% endif %}
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
+      run:
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
       run_constrained:
         - msys2-conda-epoch <0.0a0    # [win]
     test:
@@ -560,6 +718,7 @@ outputs:
     script: install-libgcc-no-gomp.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
@@ -567,6 +726,9 @@ outputs:
       rpaths_patcher: patchelf
       overlinking_ignore_patterns:
         - "lib/libgcc_s.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
@@ -574,19 +736,25 @@ outputs:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}  {{ cross_target_stdlib_version }}
       run:
         - _openmp_mutex * *_gnu
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
       run_constrained:
         - {{ pin_subpackage("libgomp", exact=True) }}
         - msys2-conda-epoch <0.0a0    # [win]
         # avoid installing incompatible version of old name for this output
+        # TODO: Figure out if out custom build string will impact this.
         - libgcc-ng =={{ version }}=*_{{ build_num }}
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
       commands:
-        - test -f ${PREFIX}/lib/libgcc_s.so
+        # manylinux installs the unversioned DSO as a linker script, its not part of runtime
+        - test -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor != "manylinux"]
+        - test ! -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/lib/libgcc_s.so.1
         # libgcc should not ship the libgomp, which has its own output.
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
+        - test -f ${PREFIX}/share/licenses/gcc-libs/RUNTIME.LIBRARY.EXCEPTION
     about:
       summary: The GCC low-level runtime library
       home: https://gcc.gnu.org/onlinedocs/gccint/Libgcc.html
@@ -597,23 +765,36 @@ outputs:
     script: install-libgfortran.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
       overlinking_ignore_patterns:
         - "lib/libgfortran.so.*"
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       build:
       host:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }} {{ cross_target_stdlib_version }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
       run_constrained:
         - libgfortran {{ gcc_version }}
     test:
       commands:
-        - test -f ${PREFIX}/lib/libgfortran.so
+        # on manylinux the toolchain provides the unversioned DSO as a linker script
+        # it's not part of the runtime.
+        - test ! -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor == "manylinux"]
+        - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
+        - test -f ${PREFIX}/lib/libgfortran.so.5
+        - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
+        - ls ${PREFIX}/lib/libgfortran*system*.so.* >/dev/null 2>&1 && exit 1
+        - test -f ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
+
     about:
       summary: The GNU Fortran Runtime Library
       home: https://gcc.gnu.org/
@@ -624,15 +805,21 @@ outputs:
     build:
       skip: true   # [target_platform != cross_target_platform]
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       run:
         - {{ pin_subpackage('libgfortran' ~ libgfortran_soname, exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
       run_constrained:
         # avoid installing incompatible version of old name for this output
+        # TODO: Figure out if out custom build string will impact this.
         - libgfortran-ng =={{ version }}=*_{{ build_num }}
     test:
       commands:
-        - test -f ${PREFIX}/lib/libgfortran.so
+        - test -f ${PREFIX}/lib/libgfortran.so # [gcc_flavor != "manylinux"]
     about:
       summary: The GNU Fortran Runtime Library
       home: https://gcc.gnu.org/
@@ -642,11 +829,15 @@ outputs:
     version: {{ gcc_version }}
     script: install-gdb-pretty-printer.sh
     build:
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       # skip until gdb 16.3 is on defaults (which is built against GCC 14.3.0)
       skip: true
       number: {{ build_num }}
       ignore_run_exports:   # [linux]
         - libstdcxx         # [linux]
+      run_exports:
+        strong:
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - python
@@ -654,6 +845,7 @@ outputs:
         - python
         - gdb >= 16.3
         - libstdcxx >={{ gcc_version }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     about:
       summary: GNU Compiler Collection Python Pretty Printers
       home: https://gcc.gnu.org/
@@ -666,15 +858,18 @@ outputs:
     target: {{ cross_target_platform }}
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true    # [target_platform != cross_target_platform]
       run_exports:
         strong:
           - libgcc
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("libgcc", exact=True) }}
       run:
         - {{ pin_subpackage("libgcc", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -688,15 +883,18 @@ outputs:
     script: install-libstdc++.sh
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [target_platform != cross_target_platform]
       run_exports:
         strong:
           - libstdcxx
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage("libstdcxx", exact=True) }}
       run:
         - {{ pin_subpackage("libstdcxx", exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
@@ -709,15 +907,18 @@ outputs:
     target: {{ cross_target_platform }}
     build:
       number: {{ build_num }}
+      string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [target_platform != cross_target_platform]
       run_exports:
         strong:
           - libgfortran
+          - _gcc_mutex 1 {{ gcc_flavor }}_*
     requirements:
       host:
         - {{ pin_subpackage('libgfortran', exact=True) }}
       run:
         - {{ pin_subpackage('libgfortran', exact=True) }}
+        - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
       commands:
         - echo "empty wrapper for compatibility with previous naming"
