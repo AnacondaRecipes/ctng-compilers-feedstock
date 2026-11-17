@@ -12,7 +12,16 @@ ln -s isl-* isl
 # ensure patch is applied
 grep 'conda-forge:: allow' gcc/gcc.c*
 
+# Set this to 1 to get a faster build that bypasses bootstrap and PGO.
+# This is useful for developing the toolchain scripts and recipes as the
+# builds are generally "ok" enough to be useful and complete more quickly.
+FAST_DEV_BUILD=0
+
 GCC_CONFIGURE_OPTIONS=()
+
+if [[ "${FAST_DEV_BUILD}" == "1" ]]; then
+  GCC_CONFIGURE_OPTIONS+=(--disable-bootstrap)
+fi
 
 if [[ "$channel_targets" == *conda-forge* ]]; then
   GCC_CONFIGURE_OPTIONS+=(--with-pkgversion="conda-forge gcc ${gcc_version}-${PKG_BUILDNUM}")
@@ -166,6 +175,18 @@ if [[ "$gcc_flavor" == "manylinux" ]]; then
   # --with-gcc-major-version-only.
 fi
 
+# This adds package identifiers and markers that will end up in --version
+# output on tools and in the .comment section in compiled artifacts.
+# It does not use --with-pkgversion= so as to preserve the parsable
+# (GCC) start to the identifier string. Further, so as to get the
+# PKG_BUILD_STRING identifier into the binaries, which obviously varies
+# between output packages, it's necessary to use a placeholder string
+# which is then binary patched at output creation time when
+# PKG_BUILD_STRING for the output is known.
+echo "Anaconda ${ACNDA_BRANDING_STR}" > ${SRC_DIR}/gcc/DEV-PHASE
+GCC_CONFIGURE_OPTIONS+=(--with-bugurl="https://www.anaconda.com/support")
+
+
 CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
   CXXFLAGS="`echo " $OPT_FLAGS " | sed 's/ -Wall / /g;s/ -fexceptions / /g' \
   | sed 's/ -Wformat-security / -Wformat -Wformat-security /'`" \
@@ -176,7 +197,11 @@ CC="$CC" CXX="$CXX" CFLAGS="$OPT_FLAGS" \
 # Setting the CPU_COUNT=1 lets you see which job failed!
 # CPU_COUNT=1
 if [[ "$gcc_flavor" == "manylinux" ]]; then
-  make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now profiledbootstrap
+  if [[ "${FAST_DEV_BUILD}" == "1" ]]; then
+    make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now
+  else
+    make -j${CPU_COUNT} BOOT_CFLAGS="$OPT_FLAGS" LDFLAGS_FOR_TARGET=-Wl,-z,relro,-z,now profiledbootstrap
+  fi
 else
   make -j${CPU_COUNT}
 fi

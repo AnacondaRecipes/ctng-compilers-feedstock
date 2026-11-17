@@ -1,5 +1,5 @@
 {% set version = gcc_version %}
-{% set build_num = 10 %}
+{% set build_num = 11 %}
 
 {% if gcc_maj_ver is not defined %}
 {% set gcc_maj_ver = 15 %}
@@ -17,6 +17,18 @@
 {% if cross_target_platform is not defined %}
 {% set cross_target_platform = "linux-64" %}
 {% endif %}
+
+
+# This string is used as a placeholder that will be replaced in the binaries etc by the PKG_BUILD_STRING.
+# It exists because the single GCC build produces many output packages, each of which has a PKG_BUILD_STRING
+# and that needs to be reflected into the binaries etc as the compilers and archives end up putting this
+# string into the binaries they output from compilation. The purpose of all this is two things:
+# 1. Put branding into the tools along with traceable versions.
+# 2. Make it so that the '.comment' section that ends up in binary output has the traceable version present
+#    this as an insurance policy again compiler bugs etc
+# The string has no meaning, the first part is for humans reading, the second is just a uuid4 derivative.
+{% set acnda_branding_str = "anaconda_custom_string_82d96e4d42e955f3e3d9e8afafc492f6" %}
+
 
 package:
   name: gcc_compilers
@@ -126,6 +138,9 @@ source:
 
 build:
   number: {{ build_num }}
+  string: {{ acnda_branding_str }}
+  script_env:
+    - ACNDA_BRANDING_STR={{ acnda_branding_str }}
   skip: True  # [win]
   skip: true  # [not (linux or win) or (win and cross_target_platform != "win-64")]
   detect_binary_files_with_prefix: false
@@ -141,11 +156,15 @@ requirements:
 
 outputs:
   - name: libgcc-devel_{{ cross_target_platform }}
-    script: install-libgcc-devel.sh
     build:
       noarch: generic
       number: {{ libgcc_devel_build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      script:
+        - source ${RECIPE_DIR}/install-libgcc-devel.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       detect_binary_files_with_prefix: false
       missing_dso_whitelist:
         - "*"
@@ -165,6 +184,8 @@ outputs:
         - __win    # [win]
         - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
+      requires:
+        - binutils
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/crtbegin.o
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_eh.a
@@ -174,6 +195,7 @@ outputs:
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                             # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1    # [gcc_flavor == "manylinux"]
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1  # [gcc_flavor != "manylinux"]
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1| grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         {% else %}
@@ -185,8 +207,12 @@ outputs:
       license: GPL-3.0-only WITH GCC-exception-3.1
 
   - name: libstdcxx-devel_{{ cross_target_platform }}
-    script: install-libstdc++-devel.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-libstdc++-devel.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       noarch: generic
       number: {{ libgcc_devel_build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
@@ -209,6 +235,8 @@ outputs:
         - __win    # [win]
         - _gcc_mutex 1 {{ gcc_flavor }}_*
     test:
+      requires:
+        - binutils
       commands:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.a
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++fs.a
@@ -223,6 +251,8 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/include/c++/cstdio
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libstdc++.so
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/{{ triplet }}/lib/libstdc++.so|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_system_like.so.6.0.34| grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
         {% else %}
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.dll.a
         {% endif %}
@@ -232,8 +262,12 @@ outputs:
       license: GPL-3.0-only WITH GCC-exception-3.1
 
   - name: gcc_impl_{{ cross_target_platform }}
-    script: install-gcc.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-gcc.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
@@ -289,6 +323,11 @@ outputs:
         - ${CC} -Wall c_aligned.o -o c_aligned -Wl,-rpath,/foo && {{ triplet }}-readelf -d c_aligned | grep RPATH | grep "/foo:${PREFIX}/lib"  # [cross_target_platform == target_platform and cross_target_platform != "win-64"]
         - ${CC} -Wall tests/hello_world.c -c -o hello_world.o -v
         - ${CC} -Wall hello_world.o -o hello_world -v
+        # check branding and support strings
+        - ${CC} --version|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ! grep -lsar {{ acnda_branding_str }} ${PREFIX}
+        - ${CC} --help|grep "anaconda.com/support"
+        - {{ triplet }}-readelf -p .comment hello_world|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         - test -f ${PREFIX}/{{ triplet }}/lib/libsanitizer.spec
@@ -403,8 +442,12 @@ outputs:
       doc_url: https://gcc.gnu.org/onlinedocs/gcc/Spec-Files.html
 
   - name: gxx_impl_{{ cross_target_platform }}
-    script: install-g++.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-g++.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
@@ -445,7 +488,11 @@ outputs:
         - ${CXX} -Wall cpp_aligned.o -o cpp_aligned --std=c++17 && ./cpp_aligned  # [cross_target_platform == target_platform and cross_target_platform != "win-64"]
         - ${CXX} -Wall tests/hello_world.cpp -c -o hello_world.o --std=c++17
         - ${CXX} -Wall hello_world.o -o hello_world --std=c++17
-
+        # check branding and support strings
+        - ${CXX} --version|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ! grep -lsar {{ acnda_branding_str }} ${PREFIX}
+        - ${CXX} --help|grep "anaconda.com/support"
+        - {{ triplet }}-readelf -p .comment hello_world|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         # test tzdb integration
       {% if gcc_maj_ver|int >= 14 %}
         - ${CXX} -isystem ${PREFIX}/include --std=c++20 -Wall tests/tzdb-override.cpp -c -o tzdb-override.o
@@ -493,8 +540,12 @@ outputs:
       license_file: LICENSE
 
   - name: gfortran_impl_{{ cross_target_platform }}
-    script: install-gfortran.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-gfortran.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       detect_binary_files_with_prefix: false
@@ -542,6 +593,7 @@ outputs:
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared80.a  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0    # [gcc_flavor == "manylinux"]
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0  # [gcc_flavor != "manylinux"]
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0| grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
         {% else %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.dll.a
         {% endif %}
@@ -553,6 +605,15 @@ outputs:
         - echo {{ gcc_maj_ver }}
         - pushd tests/fortomp
         - sh test_fort.sh   # [target_platform == cross_target_platform and (x86_64 or aarch64 or ppc64le)]
+        - popd
+        # check branding and support strings
+        - FC=${PREFIX}/bin/{{ triplet }}-gfortran
+        - ${FC} --version|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ! grep -lsar {{ acnda_branding_str }} ${PREFIX}
+        - ${FC} --help|grep "anaconda.com/support"
+        - echo 'program foo; print*,"hello fortran"; end program'|${FC} -x f95 -o hello_world -
+        - ./hello_world|grep "hello fortran"
+        - {{ triplet }}-readelf -p .comment hello_world|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
       files:
         - tests/fortomp/*
     about:
@@ -590,8 +651,12 @@ outputs:
 
   - name: libstdcxx
     target: {{ cross_target_platform }}
-    script: install-libstdc++.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-libstdc++.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
@@ -631,8 +696,12 @@ outputs:
 
   - name: libsanitizer
     target: {{ cross_target_platform }}
-    script: install-libsanitizer.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-libsanitizer.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform or win]
@@ -675,8 +744,12 @@ outputs:
 
   - name: libgomp
     target: {{ cross_target_platform }}
-    script: install-libgomp.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-libgomp.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
@@ -715,8 +788,12 @@ outputs:
 
   - name: libgcc
     target: {{ cross_target_platform }}
-    script: install-libgcc-no-gomp.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-libgcc-no-gomp.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
@@ -746,11 +823,13 @@ outputs:
     test:
       requires:
         - {{ cross_target_stdlib }}_{{ cross_target_platform }}
+        - binutils
       commands:
         # manylinux installs the unversioned DSO as a linker script, its not part of runtime
         - test -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor != "manylinux"]
         - test ! -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor == "manylinux"]
         - test -f ${PREFIX}/lib/libgcc_s.so.1
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/libgcc_s.so.1|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
         # libgcc should not ship the libgomp, which has its own output.
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
@@ -762,8 +841,12 @@ outputs:
 
   - name: libgfortran{{ libgfortran_soname }}
     target: {{ cross_target_platform }}
-    script: install-libgfortran.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-libgfortran.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true                # [target_platform != cross_target_platform]
@@ -785,6 +868,8 @@ outputs:
       run_constrained:
         - libgfortran {{ gcc_version }}
     test:
+      requires:
+        - binutils
       commands:
         # on manylinux the toolchain provides the unversioned DSO as a linker script
         # it's not part of the runtime.
@@ -792,6 +877,7 @@ outputs:
         - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/libgfortran.so.5
         - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/libgfortran.so.5.0.0|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         - ls ${PREFIX}/lib/libgfortran*system*.so.* >/dev/null 2>&1 && exit 1
         - test -f ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
 
@@ -880,8 +966,12 @@ outputs:
 
   - name: libstdcxx-ng
     target: {{ cross_target_platform }}
-    script: install-libstdc++.sh
     build:
+      script:
+        - source ${RECIPE_DIR}/install-libstdc++.sh
+        - source ${RECIPE_DIR}/fix_branding_markers.sh
+      script_env:
+        - ACNDA_BRANDING_STR={{ acnda_branding_str }}
       number: {{ build_num }}
       string: {{ gcc_flavor }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
       skip: true   # [target_platform != cross_target_platform]
