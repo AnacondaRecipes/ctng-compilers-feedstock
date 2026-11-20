@@ -16,18 +16,6 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
     fi
     # Remove conda-forge/label/sysroot-with-crypt when GCC < 14 is dropped
     conda create -p $SRC_DIR/cf-compilers -c defaults --yes --quiet \
-      "${c_stdlib}_${target_platform}=${c_stdlib_version}" \
-      "${cross_target_stdlib}_${cross_target_platform}=${cross_target_stdlib_version}" \
-      make \
-      "py-lief=1"
-
-    if [[ "${gcc_flavor}" == "main" ]]; then
-      channel="defaults"
-    else
-      channel="https://repo-latest.dev-us-east-1.anaconda.cloud/repo/premium-test"
-    fi
-
-    conda install -p $SRC_DIR/cf-compilers -c ${channel} --yes --quiet \
       "binutils_impl_${build_platform}" \
       "gcc_impl_${build_platform}" \
       "gxx_impl_${build_platform}" \
@@ -36,8 +24,12 @@ if [[ ! -d  $SRC_DIR/cf-compilers ]]; then
       "gcc_impl_${target_platform}" \
       "gxx_impl_${target_platform}" \
       "gfortran_impl_${target_platform}" \
+      "${c_stdlib}_${target_platform}=${c_stdlib_version}" \
       "binutils_impl_${cross_target_platform}=${binutils_version}" \
+      "${cross_target_stdlib}_${cross_target_platform}=${cross_target_stdlib_version}" \
+      make \
       "flex=2.6.4" \
+      "py-lief=1" \
       ${extra_pkgs[@]}
 fi
 
