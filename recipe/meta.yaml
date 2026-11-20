@@ -27,6 +27,8 @@
 # 2. Make it so that the '.comment' section that ends up in binary output has the traceable version present
 #    this as an insurance policy again compiler bugs etc
 # The string has no meaning, the first part is for humans reading, the second is just a uuid4 derivative.
+# It is important though that the string be unique and random to avoid accidentally replacing
+# parts of the binaries that we never intended to replace.
 {% set acnda_branding_str = "anaconda_custom_string_82d96e4d42e955f3e3d9e8afafc492f6" %}
 
 
@@ -195,7 +197,7 @@ outputs:
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s.so                             # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1    # [gcc_flavor == "manylinux"]
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1  # [gcc_flavor != "manylinux"]
-        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1| grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgcc_s_system_like.so.1 | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"  # [gcc_flavor == "manylinux"]
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         {% else %}
@@ -251,8 +253,8 @@ outputs:
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/include/c++/cstdio
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libstdc++.so
-        - {{ triplet }}-readelf -p .comment ${PREFIX}/{{ triplet }}/lib/libstdc++.so|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
-        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_system_like.so.6.0.34| grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/{{ triplet }}/lib/libstdc++.so | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++_system_like.so.6.0.34 | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"  # [gcc_flavor == "manylinux"]
         {% else %}
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libstdc++.dll.a
         {% endif %}
@@ -324,10 +326,10 @@ outputs:
         - ${CC} -Wall tests/hello_world.c -c -o hello_world.o -v
         - ${CC} -Wall hello_world.o -o hello_world -v
         # check branding and support strings
-        - ${CC} --version|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ${CC} --version | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         - ! grep -lsar {{ acnda_branding_str }} ${PREFIX}
-        - ${CC} --help|grep "anaconda.com/support"
-        - {{ triplet }}-readelf -p .comment hello_world|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ${CC} --help | grep "anaconda.com/support"
+        - {{ triplet }}-readelf -p .comment ./hello_world | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         {% if cross_target_platform.startswith("linux-") %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgcc_s.so
         - test -f ${PREFIX}/{{ triplet }}/lib/libsanitizer.spec
@@ -489,10 +491,10 @@ outputs:
         - ${CXX} -Wall tests/hello_world.cpp -c -o hello_world.o --std=c++17
         - ${CXX} -Wall hello_world.o -o hello_world --std=c++17
         # check branding and support strings
-        - ${CXX} --version|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ${CXX} --version | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         - ! grep -lsar {{ acnda_branding_str }} ${PREFIX}
-        - ${CXX} --help|grep "anaconda.com/support"
-        - {{ triplet }}-readelf -p .comment hello_world|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ${CXX} --help | grep "anaconda.com/support"
+        - {{ triplet }}-readelf -p .comment ./hello_world | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         # test tzdb integration
       {% if gcc_maj_ver|int >= 14 %}
         - ${CXX} -isystem ${PREFIX}/include --std=c++20 -Wall tests/tzdb-override.cpp -c -o tzdb-override.o
@@ -593,7 +595,7 @@ outputs:
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_nonshared80.a  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0    # [gcc_flavor == "manylinux"]
         - test ! -f ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0  # [gcc_flavor != "manylinux"]
-        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0| grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/gcc/{{ triplet }}/{{ gcc_version }}/libgfortran_system_like.so.5.0.0 | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"  # [gcc_flavor == "manylinux"]
         {% else %}
         - test -f ${PREFIX}/{{ triplet }}/lib/libgfortran.dll.a
         {% endif %}
@@ -608,12 +610,12 @@ outputs:
         - popd
         # check branding and support strings
         - FC=${PREFIX}/bin/{{ triplet }}-gfortran
-        - ${FC} --version|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ${FC} --version | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         - ! grep -lsar {{ acnda_branding_str }} ${PREFIX}
-        - ${FC} --help|grep "anaconda.com/support"
-        - echo 'program foo; print*,"hello fortran"; end program'|${FC} -x f95 -o hello_world -
-        - ./hello_world|grep "hello fortran"
-        - {{ triplet }}-readelf -p .comment hello_world|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - ${FC} --help | grep "anaconda.com/support"
+        - echo 'program foo; print*,"hello fortran"; end program' | ${FC} -x f95 -o hello_world -
+        - ./hello_world | grep "hello fortran"
+        - {{ triplet }}-readelf -p .comment ./hello_world | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
       files:
         - tests/fortomp/*
     about:
@@ -829,7 +831,7 @@ outputs:
         - test -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor != "manylinux"]
         - test ! -f ${PREFIX}/lib/libgcc_s.so  # [gcc_flavor == "manylinux"]
         - test -f ${PREFIX}/lib/libgcc_s.so.1
-        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/libgcc_s.so.1|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}" # [gcc_flavor == "manylinux"]
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/libgcc_s.so.1 | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"  # [gcc_flavor == "manylinux"]
         # libgcc should not ship the libgomp, which has its own output.
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver }}
         - test ! -e ${PREFIX}/lib/libgomp.so.{{ libgomp_ver[0:1] }}
@@ -877,7 +879,7 @@ outputs:
         - test -f ${PREFIX}/lib/libgfortran.so  # [gcc_flavor != "manylinux"]
         - test -f ${PREFIX}/lib/libgfortran.so.5
         - test -f ${PREFIX}/lib/libgfortran.so.5.0.0
-        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/libgfortran.so.5.0.0|grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
+        - {{ triplet }}-readelf -p .comment ${PREFIX}/lib/libgfortran.so.5.0.0 | grep "Anaconda ${PKG_NAME} ${PKG_BUILD_STRING}"
         - ls ${PREFIX}/lib/libgfortran*system*.so.* >/dev/null 2>&1 && exit 1
         - test -f ${PREFIX}/share/licenses/libgfortran/RUNTIME.LIBRARY.EXCEPTION
 

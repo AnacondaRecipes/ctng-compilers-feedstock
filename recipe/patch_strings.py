@@ -133,7 +133,7 @@ def _generate_cli_parser(descr):
         help="the replacement string (placeholder will be replaced with this)")
     parser.add_argument(
         "file_list",
-        help="file containing list of files in which to do the replacement")
+        help="file containing list of files in which to do the replacement. One path per line")
     parser.add_argument(
         "-v",
         "--verbose",
