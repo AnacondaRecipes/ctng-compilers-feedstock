@@ -228,14 +228,29 @@ if [[ "$target_platform" == "$cross_target_platform" ]]; then
      mv ${PREFIX}/lib/lib${lib}.*a ${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/
     fi
   done
-  for lib in libasan.so libatomic.so libgomp.so libhwasan.so libitm.so liblsan.so libquadmath.so libtsan.so libubsan.so libstdc++.so libstdc++.so.6 libgcc_s.so; do
-    if [[ -f "${PREFIX}/lib/${lib}" ]]; then
-     # install a shared library here since the directory ${PREFIX}/lib/gcc/${TARGET}/${gcc_version}
-     # has the highest preference and we want shared libraries to have the highest preference
-     rm ${PREFIX}/lib/${lib}
-     ln -sf ${PREFIX}/lib/${lib} ${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/
-    fi
-  done
+  if [[ "$gcc_flavor" == "manylinux" ]]; then
+    # NOTE: the manylinux toolchain has a runtime that matches the toolchain
+    # version but compile time libraries that are deliberately restricted.
+    # Do not link the run time dir libs into the toolchain dir libs that are
+    # "restricted".
+    for lib in libasan.so libatomic.so libgomp.so libhwasan.so libitm.so liblsan.so libquadmath.so libtsan.so libubsan.so libstdc++.so.6; do
+      if [[ -f "${PREFIX}/lib/${lib}" ]]; then
+       # install a shared library here since the directory ${PREFIX}/lib/gcc/${TARGET}/${gcc_version}
+       # has the highest preference and we want shared libraries to have the highest preference
+       rm ${PREFIX}/lib/${lib}
+       ln -sf ${PREFIX}/lib/${lib} ${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/
+      fi
+    done
+  else
+    for lib in libasan.so libatomic.so libgomp.so libhwasan.so libitm.so liblsan.so libquadmath.so libtsan.so libubsan.so libstdc++.so libstdc++.so.6 libgcc_s.so; do
+      if [[ -f "${PREFIX}/lib/${lib}" ]]; then
+       # install a shared library here since the directory ${PREFIX}/lib/gcc/${TARGET}/${gcc_version}
+       # has the highest preference and we want shared libraries to have the highest preference
+       rm ${PREFIX}/lib/${lib}
+       ln -sf ${PREFIX}/lib/${lib} ${PREFIX}/lib/gcc/${TARGET}/${gcc_version}/
+      fi
+    done
+  fi
 else
   source ${RECIPE_DIR}/install-libgcc.sh
   for lib in libcc1; do

@@ -1,0 +1,27 @@
+diff -pruN a/libstdc++-v3/include/bits/locale_facets_nonio.tcc b/libstdc++-v3/include/bits/locale_facets_nonio.tcc
+--- a/libstdc++-v3/include/bits/locale_facets_nonio.tcc	2026-03-17 10:36:01.834877106 -0400
++++ b/libstdc++-v3/include/bits/locale_facets_nonio.tcc	2026-03-17 10:50:39.810318497 -0400
+@@ -1040,6 +1040,7 @@ _GLIBCXX_END_NAMESPACE_LDBL_OR_CXX11
+     }
+ 
+   template<typename _CharT, typename _InIter>
++    [[__gnu__::__always_inline__]] inline
+     _InIter
+     time_get<_CharT, _InIter>::
+     _M_extract_via_format(iter_type __beg, iter_type __end, ios_base& __io,
+@@ -1052,6 +1053,7 @@ _GLIBCXX_END_NAMESPACE_LDBL_OR_CXX11
+     }
+ 
+   template<typename _CharT, typename _InIter>
++    [[__gnu__::__always_inline__]] inline
+     _InIter
+     time_get<_CharT, _InIter>::
+     _M_extract_num(iter_type __beg, iter_type __end, int& __member,
+@@ -1089,6 +1091,7 @@ _GLIBCXX_END_NAMESPACE_LDBL_OR_CXX11
+   // __names in the second half (May is abbreviated as May).  Some __names
+   // elements could be prefixes of other __names elements.
+   template<typename _CharT, typename _InIter>
++    [[__gnu__::__always_inline__]] inline
+     _InIter
+     time_get<_CharT, _InIter>::
+     _M_extract_name(iter_type __beg, iter_type __end, int& __member,

@@ -63,10 +63,10 @@ mkdir -p ${PREFIX}/lib
 
 if [[ "${PKG_NAME}" != "gcc_impl"* ]]; then
   # no static libs
-  find ${PREFIX}/lib -name "*\.a" -exec rm -rf {} \;
+  find ${PREFIX}/lib -name "*\.a" -exec rm -v -rf {} \;
 fi
 # no libtool files
-find ${PREFIX}/lib -name "*\.la" -exec rm -rf {} \;
+find ${PREFIX}/lib -name "*\.la" -exec rm -v -rf {} \;
 
 if [[ "${PKG_NAME}" != gcc_impl* ]]; then
   # mv ${PREFIX}/${TARGET}/lib/* ${PREFIX}/lib
@@ -80,3 +80,9 @@ if [[ "${PKG_NAME}" != gcc_impl* ]]; then
 fi
 
 rm -f ${PREFIX}/share/info/dir
+
+if [[ "$gcc_flavor" == "manylinux" ]]; then
+  # remove this symlink, the toolchain explicitly sets DT_NEEDED as libgcc_s.so.1
+  # and the libgcc-devel package symlinks this to the toolchain linker script
+  rm -v -f ${PREFIX}/lib/libgcc_s.so
+fi
